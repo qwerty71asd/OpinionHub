@@ -1,0 +1,27 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.LockoutModel
+@{
+    ViewData["Title"] = "Аккаунт заблокирован";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<p class="text-danger">Вход в систему временно недоступен: ваш аккаунт заблокирован.</p>
+
+@if (!string.IsNullOrWhiteSpace(Model.LockoutLogin))
+{
+    <p><b>Пользователь:</b> @Model.LockoutLogin</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.LockoutUntilText))
+{
+    <p><b>Срок блокировки:</b> @Model.LockoutUntilText</p>
+}
+
+<p class="text-muted">
+    Если вы считаете, что это ошибка — обратитесь к администратору.
+</p>
+
+<p>
+    <a asp-page="./Login">Вернуться на страницу входа</a>
+</p>

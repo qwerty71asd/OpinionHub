@@ -1,0 +1,40 @@
+@model OpinionHub.Web.Models.Admin.AdminLockoutVm
+
+@{
+    ViewData["Title"] = "Блокировка";
+}
+
+<h2 class="mb-3">Блокировка пользователя</h2>
+
+<div class="mb-3 text-muted">Пользователь: <b>@Model.UserName</b></div>
+
+<form method="post" class="row g-3" style="max-width: 700px;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="col-12">
+        <div asp-validation-summary="All" class="text-danger"></div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-check">
+            <input asp-for="Permanent" class="form-check-input" />
+            <label asp-for="Permanent" class="form-check-label"></label>
+        </div>
+        <div class="text-muted" style="font-size: 0.9rem">
+            Если включено — блокировка будет до <code>DateTimeOffset.MaxValue</code>.
+        </div>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Minutes" class="form-label"></label>
+        <input asp-for="Minutes" class="form-control" />
+        <div class="form-text">Если не бессрочно: 60 = 1 час, 1440 = 1 день.</div>
+        <span asp-validation-for="Minutes" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-warning" type="submit">Заблокировать</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
+    </div>
+</form>

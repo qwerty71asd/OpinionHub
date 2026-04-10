@@ -1,0 +1,114 @@
+@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - OpinionHub</title>
+
+    <script>
+        // Темная/светлая тема без мигалки (ставим до CSS)
+        (function () {
+            try {
+                const saved = localStorage.getItem('oh-theme');
+                const theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-bs-theme', theme);
+            } catch { }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="oh-body">
+
+<nav class="navbar navbar-expand-lg navbar-blur sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-semibold" asp-controller="Home" asp-action="Index">
+            <span class="brand-dot me-2"></span>OpinionHub
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Home" asp-action="Index">Лента</a>
+                </li>
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Admin" asp-action="Index">Админка</a>
+                    </li>
+                }
+            </ul>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="themeToggle" title="Сменить тему">
+                    <i class="bi bi-moon-stars"></i>
+                </button>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Polls" asp-action="Create" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i>Создать
+                    </a>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>@(User.Identity?.Name ?? "Аккаунт")
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">
+                                    <i class="bi bi-gear me-2"></i>Профиль
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-area="Identity" asp-page="/Account/Logout" method="post" class="px-3">
+                                    <button class="btn btn-danger btn-sm w-100" type="submit">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Выйти
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-sm">
+                        Войти
+                    </a>
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-sm">
+                        Регистрация
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main>
+    @RenderBody()
+</main>
+
+<footer class="footer mt-auto py-4">
+    <div class="container small text-secondary d-flex flex-column flex-md-row justify-content-between gap-2">
+        <div>© @DateTime.Now.Year OpinionHub</div>
+        <div class="d-flex gap-3">
+            <span class="text-secondary">ASP.NET Core • EF Core • PostgreSQL</span>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

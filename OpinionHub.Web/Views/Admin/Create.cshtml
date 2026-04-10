@@ -1,0 +1,71 @@
+@model OpinionHub.Web.Models.Admin.AdminUserCreateVm
+
+@{
+    ViewData["Title"] = "Создать пользователя";
+}
+
+<h2 class="mb-3">Создать пользователя</h2>
+
+<form method="post" class="row g-3" style="max-width: 900px;">
+    @Html.AntiForgeryToken()
+
+    <div class="col-12">
+        <div asp-validation-summary="All" class="text-danger"></div>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="UserName" class="form-label"></label>
+        <input asp-for="UserName" class="form-control" />
+        <span asp-validation-for="UserName" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="EmailConfirmed" class="form-check-input" />
+            <label asp-for="EmailConfirmed" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="ConfirmPassword" class="form-label"></label>
+        <input asp-for="ConfirmPassword" class="form-control" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Роли</label>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var r in Model.AvailableRoles)
+            {
+                var checkedNow = Model.SelectedRoles.Contains(r);
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@r" @(checkedNow ? "checked" : "") />
+                    <label class="form-check-label">@r</label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Создать</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
+    </div>
+</form>

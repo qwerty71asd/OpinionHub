@@ -1,0 +1,193 @@
+@using System.Security.Claims
+@using OpinionHub.Web.Models
+@model OpinionHub.Web.Models.Poll
+@{
+    ViewData["Title"] = Model.Title;
+    var total = Model.Votes.Count;
+    var myId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var isAuthor = User.Identity?.IsAuthenticated == true && myId == Model.AuthorId;
+    var isEmailConfirmed = (ViewBag.IsEmailConfirmed as bool?) ?? false;
+    var returnUrl = Url.Action("Details", "Polls", new { id = Model.Id });
+}
+
+<div class="oh-hero py-4 py-md-5 mb-4">
+    
+
+@if (TempData["EmailConfirmRequired"] is string emailConfirmMsg)
+{
+    <div class="container">
+        <div class="alert alert-warning mb-3">@emailConfirmMsg</div>
+    </div>
+}
+
+<div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h1 class="display-6 mb-0">@Model.Title</h1>
+                    <span class="badge rounded-pill @(
+                        Model.Status == PollStatus.Active ? "text-bg-success" :
+                        Model.Status == PollStatus.Draft ? "text-bg-warning" :
+                        Model.Status == PollStatus.Completed ? "text-bg-secondary" : "text-bg-dark")">
+                        @Model.Status
+                    </span>
+                </div>
+
+                <div class="text-secondary">
+                    Тип: <strong>@Model.PollType</strong>
+                    <span class="mx-1">•</span>
+                    Видимость: <strong>@Model.VisibilityType</strong>
+                    <span class="mx-1">•</span>
+                    Доступ: <strong>@(Model.AudienceType == AudienceType.Everyone ? "Все" : "Выбранные")</strong>
+                    <span class="mx-1">•</span>
+                    Голосов: <strong>@total</strong>
+                    @if (Model.EndDateUtc is not null)
+                    {
+                        <span class="mx-1">•</span>
+	                    <span>До: <strong>@Model.EndDateUtc.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong></span>
+                    }
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">← В ленту</a>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="btn btn-primary" asp-action="Create">+ Создать опрос</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    @if (TempData["VoteError"] is string voteError)
+    {
+        <div class="alert alert-danger">@voteError</div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm oh-card">
+                <div class="card-body p-4">
+                    <h2 class="h5 mb-3">Голосование</h2>
+
+                    @if (Model.Status != PollStatus.Active)
+                    {
+                        <div class="text-secondary">Опрос не активен — голосование недоступно.</div>
+                    }
+                    else if (User.Identity?.IsAuthenticated != true)
+                    {
+                        <div class="text-secondary mb-3">Чтобы проголосовать, нужно войти.</div>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-secondary" asp-area="Identity" asp-page="/Account/Login">Войти</a>
+                            <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Регистрация</a>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (!isEmailConfirmed)
+                        {
+                            <div class="alert alert-warning">
+                                Чтобы голосовать, нужно подтвердить почту.
+                                <a class="ms-2" asp-area="Identity" asp-page="/Account/ConfirmEmailCode" asp-route-userId="@myId" asp-route-returnUrl="@returnUrl">Подтвердить</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <form asp-action="Vote" method="post">
+                            <input type="hidden" name="id" value="@Model.Id" />
+
+                            <div class="vstack gap-2">
+                                @foreach (var option in Model.Options)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="@(Model.PollType == PollType.SingleChoice ? "radio" : "checkbox")"
+                                               name="optionIds"
+                                               value="@option.Id"
+                                               id="opt-@option.Id" />
+                                        <label class="form-check-label" for="opt-@option.Id">@option.Text</label>
+                                    </div>
+                                }
+                            </div>
+
+                            <button class="btn btn-primary mt-3 w-100">Проголосовать</button>
+
+                            @if (Model.CanChangeVote)
+                            {
+                                <div class="form-text">Можно менять голос (пока опрос активен).</div>
+                            }
+                        </form>
+                        }
+                    }
+
+                    @if (isAuthor && Model.Status == PollStatus.Draft)
+                    {
+                        <hr class="my-4" />
+                        <form asp-action="Publish" method="post">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button class="btn btn-success w-100">Опубликовать черновик</button>
+                        </form>
+                    }
+
+                    @if (isAuthor)
+                    {
+                        <hr class="my-4" />
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-primary flex-fill" asp-action="ExportCsv" asp-route-id="@Model.Id">CSV</a>
+                            <a class="btn btn-outline-primary flex-fill" asp-action="ExportXlsx" asp-route-id="@Model.Id">XLSX</a>
+                        </div>
+                        <div class="form-text mt-2">Экспорт доступен только автору опроса.</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm oh-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">Результаты</h2>
+                        <span class="small text-secondary">Обновляются в реальном времени</span>
+                    </div>
+
+                    <div class="vstack gap-3 mb-4">
+                        @foreach (var option in Model.Options)
+                        {
+                            var count = Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == option.Id));
+                            var pct = total == 0 ? 0 : count * 100.0 / total;
+
+                            <div>
+                                <div class="d-flex justify-content-between small">
+                                    <span class="fw-semibold">@option.Text</span>
+                                    <span class="text-secondary">@count ( @pct.ToString("F1")% )</span>
+                                </div>
+                                <div class="progress" role="progressbar" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width: @pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="oh-chart-wrap">
+                        <canvas id="chart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/poll-details.js"></script>
+    <script>
+        initPollDetails(
+            '@Model.Id',
+            [@Html.Raw(string.Join(',', Model.Options.Select(o => $"'{o.Text.Replace("'", "\\'")}'")))],
+            [@string.Join(',', Model.Options.Select(o => Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id))))]
+        );
+    </script>
+}
