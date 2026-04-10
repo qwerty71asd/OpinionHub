@@ -154,4 +154,24 @@ private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? 
         var bytes = await _pollService.ExportXlsxAsync(id, userId);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "results.xlsx");
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Details), "Polls", new { id }));
+        if (gate is not null) return gate;
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        try
+        {
+            await _pollService.DeleteAsync(id, userId);
+            return RedirectToAction("Index", "Home"); // После успешного удаления кидаем на главную
+        }
+        catch (Exception ex)
+        {
+            TempData["VoteError"] = ex.Message; // Используем существующий механизм вывода ошибок
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
 }

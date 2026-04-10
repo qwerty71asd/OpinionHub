@@ -155,6 +155,10 @@ public class PollService : IPollService
         if (poll is null)
             return null;
 
+        // НОВОЕ ПРАВИЛО: Если это черновик, смотреть его может ТОЛЬКО автор
+        if (poll.Status == PollStatus.Draft && poll.AuthorId != viewerUserId)
+            return null; // Вернем null, контроллер выдаст ошибку доступа
+
         // Публичный опрос доступен всем.
         if (poll.AudienceType == AudienceType.Everyone)
             return poll;
@@ -168,23 +172,25 @@ public class PollService : IPollService
 
     public async Task<IReadOnlyCollection<Poll>> GetFeedAsync(string? viewerUserId)
     {
-        // Для неавторизованных показываем только открытые опросы.
-        // Для авторизованных: открытые + закрытые, где пользователь в списке + свои опросы.
         var q = _db.Polls
             .Include(p => p.Options)
             .AsQueryable();
 
         if (string.IsNullOrWhiteSpace(viewerUserId))
         {
-            q = q.Where(p => p.AudienceType == AudienceType.Everyone);
+            // Гости видят только публичные опросы, которые УЖЕ опубликованы (не черновики)
+            q = q.Where(p => p.AudienceType == AudienceType.Everyone && p.Status != PollStatus.Draft);
         }
         else
         {
             var uid = viewerUserId;
+            // Авторизованные видят:
+            // 1. ВСЕ свои опросы (свои черновики видеть нужно)
+            // 2. Чужие опросы, ТОЛЬКО если они НЕ черновики И (публичные ИЛИ юзер есть в списке допущенных)
             q = q.Where(p =>
-                p.AudienceType == AudienceType.Everyone
-                || p.AuthorId == uid
-                || p.AllowedUsers.Any(a => a.UserId == uid));
+                p.AuthorId == uid
+                || (p.Status != PollStatus.Draft && (p.AudienceType == AudienceType.Everyone || p.AllowedUsers.Any(a => a.UserId == uid)))
+            );
         }
 
         return await q
@@ -281,5 +287,28 @@ public class PollService : IPollService
             return true;
 
         return poll.AllowedUsers.Any(x => x.UserId == userId);
+    }
+    public async Task DeleteAsync(Guid pollId, string userId)
+    {
+        var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId);
+
+        if (poll is null)
+            throw new InvalidOperationException("Опрос не найден.");
+
+        if (poll.AuthorId != userId)
+            throw new UnauthorizedAccessException("Удалять опросы может только создатель.");
+
+        _db.Polls.Remove(poll);
+
+        // Оставляем след в истории, что опрос был удален
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EventType = "POLL_DELETED",
+            PollId = pollId,
+            UserId = userId,
+            Details = $"Удален опрос: {poll.Title}"
+        });
+
+        await _db.SaveChangesAsync();
     }
 }

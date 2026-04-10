@@ -8,6 +8,7 @@
     var isAuthor = User.Identity?.IsAuthenticated == true && myId == Model.AuthorId;
     var isEmailConfirmed = (ViewBag.IsEmailConfirmed as bool?) ?? false;
     var returnUrl = Url.Action("Details", "Polls", new { id = Model.Id });
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
 <div class="oh-hero py-4 py-md-5 mb-4">
@@ -132,15 +133,21 @@
                             <button class="btn btn-success w-100">Опубликовать черновик</button>
                         </form>
                     }
-
                     @if (isAuthor)
                     {
                         <hr class="my-4" />
-                        <div class="d-flex gap-2">
+                        <h6 class="text-secondary mb-3">Панель автора</h6>
+
+                        <div class="d-flex gap-2 mb-3">
                             <a class="btn btn-outline-primary flex-fill" asp-action="ExportCsv" asp-route-id="@Model.Id">CSV</a>
                             <a class="btn btn-outline-primary flex-fill" asp-action="ExportXlsx" asp-route-id="@Model.Id">XLSX</a>
                         </div>
-                        <div class="form-text mt-2">Экспорт доступен только автору опроса.</div>
+
+                        <form asp-action="Delete" asp-controller="Polls" asp-route-id="@Model.Id" method="post" class="d-block w-100" onsubmit="return confirm('Точно сносим? Это действие необратимо.');">
+                            <button type="submit" class="btn btn-outline-danger w-100">Удалить опрос</button>
+                        </form>
+
+                        <div class="form-text mt-3 text-center">Экспорт и удаление доступны только вам.</div>
                     }
                 </div>
             </div>

@@ -14,4 +14,5 @@ public interface IPollService
     Task<byte[]> ExportXlsxAsync(Guid pollId, string userId);
     Task<int> CompleteExpiredPollsAsync();
     Task<int> ArchiveOldPollsAsync(int archiveAfterDays);
+    Task DeleteAsync(Guid pollId, string userId);
 }
