@@ -113,7 +113,24 @@ private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? 
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             await _pollService.VoteAsync(id, userId, optionIds);
-            await _hub.Clients.Group($"poll-{id}").SendAsync("pollUpdated");
+
+            // Достаем опрос со свежими голосами
+            var updatedPoll = await _pollService.GetPollDetailsAsync(id, userId);
+            if (updatedPoll != null)
+            {
+                var total = updatedPoll.Votes.Count;
+
+                // Считаем стату для каждого варианта ответа
+                var stats = updatedPoll.Options.Select(o => new {
+                    id = o.Id,
+                    count = updatedPoll.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)),
+                    // Считаем процент с округлением до 1 знака
+                    percent = total == 0 ? 0 : Math.Round((double)updatedPoll.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)) * 100 / total, 1)
+                }).ToList();
+
+                // Пушим новые данные всем, кто сидит в комнате этого опроса
+                await _hub.Clients.Group($"poll-{id}").SendAsync("updateStats", new { Total = total, Stats = stats });
+            }
         }
         catch (Exception ex)
         {
