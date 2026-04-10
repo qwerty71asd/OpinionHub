@@ -136,18 +136,17 @@
                     @if (isAuthor)
                     {
                         <hr class="my-4" />
-                        <h6 class="text-secondary mb-3">Панель автора</h6>
-
-                        <div class="d-flex gap-2 mb-3">
+                        <div class="d-flex gap-2">
                             <a class="btn btn-outline-primary flex-fill" asp-action="ExportCsv" asp-route-id="@Model.Id">CSV</a>
                             <a class="btn btn-outline-primary flex-fill" asp-action="ExportXlsx" asp-route-id="@Model.Id">XLSX</a>
                         </div>
-
-                        <form asp-action="Delete" asp-controller="Polls" asp-route-id="@Model.Id" method="post" class="d-block w-100" onsubmit="return confirm('Точно сносим? Это действие необратимо.');">
-                            <button type="submit" class="btn btn-outline-danger w-100">Удалить опрос</button>
+                        <div class="form-text mt-2">Экспорт доступен только автору опроса.</div>
+                    }
+                                        @if (Model.AuthorId == currentUserId)
+                    {
+                        <form asp-action="Delete" asp-controller="Polls" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Точно сносим? Это действие необратимо.');">
+                            <button type="submit" class="btn btn-danger">Удалить опрос</button>
                         </form>
-
-                        <div class="form-text mt-3 text-center">Экспорт и удаление доступны только вам.</div>
                     }
                 </div>
             </div>
@@ -170,10 +169,10 @@
                             <div>
                                 <div class="d-flex justify-content-between small">
                                     <span class="fw-semibold">@option.Text</span>
-                                    <span class="text-secondary">@count ( @pct.ToString("F1")% )</span>
+                                    <span class="text-secondary" id="stat-text-@option.Id">@count ( @pct.ToString("F1")% )</span>
                                 </div>
                                 <div class="progress" role="progressbar" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar" style="width: @pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                                    <div class="progress-bar" id="stat-bar-@option.Id" style="width: @pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
                                 </div>
                             </div>
                         }
@@ -189,6 +188,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/poll-details.js"></script>
     <script>
         initPollDetails(
