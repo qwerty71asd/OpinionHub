@@ -1,41 +1,175 @@
 ﻿@model OpinionHub.Web.ViewModels.UserProfileViewModel
+@{
+    ViewData["Title"] = "Личный кабинет";
+}
 
 <div class="container mt-5">
-    <h2>Профиль пользователя: @Model.UserName</h2>
-    <p class="text-muted">Email: @Model.Email</p>
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-6 fw-bold">Личный кабинет</h1>
+            <p class="text-secondary">Добро пожаловать, <span class="text-primary fw-semibold">@Model.UserName</span> (@Model.Email)</p>
+        </div>
+    </div>
 
-    <h3 class="mt-4">Мои опросы</h3>
-    <table class="table table-hover mt-3">
-        <thead class="table-light">
-            <tr>
-                <th>Заголовок</th>
-                <th>Статус</th>
-                <th>Дата создания</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var poll in Model.MyPolls)
+    <ul class="nav nav-pills mb-4 gap-2" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active shadow-sm" id="my-polls-tab" data-bs-toggle="pill" data-bs-target="#my-polls" type="button" role="tab">
+                <i class="bi bi-list-check me-2"></i>Мои опросы (@Model.MyPolls.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link shadow-sm" id="voted-polls-tab" data-bs-toggle="pill" data-bs-target="#voted-polls" type="button" role="tab">
+                <i class="bi bi-pie-chart me-2"></i>Я участвовал (@Model.VotedPolls.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-2" id="pills-tabContent">
+        <div class="tab-pane fade show active" id="my-polls" role="tabpanel">
+            @if (!Model.MyPolls.Any())
             {
-                <tr>
-                    <td>@poll.Title</td>
-                    <td>
-                        <span class="badge @(poll.Status == PollStatus.Active ? "bg-success" : "bg-secondary")">
-                            @poll.Status
-                        </span>
-                    </td>
-                    <td>@poll.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-outline-primary">Открыть</a>
-                        @if (poll.Status == PollStatus.Draft)
-                        {
-                            <form asp-action="Publish" asp-route-id="@poll.Id" method="post" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-success">Опубликовать</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
+                <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                    <p class="text-secondary">Вы еще не создали ни одного опроса.</p>
+                    <a asp-action="Create" class="btn btn-primary btn-sm">Создать первый</a>
+                </div>
             }
-        </tbody>
-    </table>
+            else
+            {
+                <div class="table-responsive shadow-sm rounded-3">
+                    <table class="table table-hover align-middle mb-0 bg-white">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Заголовок</th>
+                                <th>Статус</th>
+                                <th>Создан</th>
+                                <th class="text-end pe-4">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var poll in Model.MyPolls)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-semibold">@poll.Title</td>
+                                    <td>
+                                        <span class="badge rounded-pill @(poll.Status == PollStatus.Active ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning")">
+                                            @poll.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-secondary small">@poll.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group shadow-sm">
+                                            <a asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-outline-primary">Открыть</a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger border-start-0 rounded-start-0 delete-poll-btn"
+                                                    data-poll-id="@poll.Id"
+                                                    data-poll-title="@poll.Title">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="voted-polls" role="tabpanel">
+            @if (!Model.VotedPolls.Any())
+            {
+                <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                    <p class="text-secondary">Вы еще не участвовали в голосованиях.</p>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-sm">Перейти в ленту</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var poll in Model.VotedPolls)
+                    {
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm oh-card border-start border-primary border-4">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <div>
+                                        <h6 class="mb-1 text-truncate" style="max-width: 250px;">@poll.Title</h6>
+                                        <small class="text-muted">Автор: @(poll.Author?.UserName ?? "Аноним")</small>
+                                    </div>
+                                    <a asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-link text-decoration-none">Результаты →</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
 </div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Удаление опроса
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body py-4">
+                Вы уверены, что хотите безвозвратно удалить опрос <br />
+                <strong id="deleteModalPollTitle" class="fs-5 text-break"></strong>?
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+
+                <form id="deleteModalForm" asp-action="Delete" method="post">
+                    <input type="hidden" name="returnUrl" value="@Url.Action("Profile", "Polls")" />
+                    <button type="submit" class="btn btn-danger px-4">Да, удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Скрипт профиля загружен");
+
+            const modalElement = document.getElementById('deleteModal');
+            if (!modalElement) {
+                console.error("ОШИБКА: Элемент #deleteModal не найден на странице!");
+                return;
+            }
+
+            // Инициализируем модалку вручную
+            const bsModal = new bootstrap.Modal(modalElement);
+            const titleSpan = document.getElementById('deleteModalPollTitle');
+            const deleteForm = document.getElementById('deleteModalForm');
+
+            // Слушаем клики по всей странице
+            document.addEventListener('click', function (e) {
+                // Ищем, был ли клик по кнопке удаления или её иконке
+                const btn = e.target.closest('.delete-poll-btn');
+
+                if (btn) {
+                    console.log("Кнопка удаления нажата!");
+
+                    // Достаем данные
+                    const id = btn.getAttribute('data-poll-id');
+                    const title = btn.getAttribute('data-poll-title');
+
+                    console.log(`Данные опроса: ID=${id}, Title=${title}`);
+
+                    // Заполняем модалку
+                    if (titleSpan) titleSpan.textContent = title;
+                    if (deleteForm) deleteForm.action = `/Polls/Delete/${id}`;
+
+                    // Показываем
+                    bsModal.show();
+                    console.log("Команда bsModal.show() отправлена");
+                }
+            });
+        });
+    </script>
+}

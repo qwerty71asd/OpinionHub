@@ -319,4 +319,14 @@ public class PollService : IPollService
             .OrderByDescending(p => p.CreatedAtUtc)
             .ToListAsync();
     }
+
+    public async Task<List<Poll>> GetVotedPollsAsync(string userId)
+    {
+        return await _db.Polls
+            .Include(p => p.Author)
+            .Where(p => p.Votes.Any(v => v.VoterAccountId == userId))
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .ToListAsync();
+    }
+
 }
