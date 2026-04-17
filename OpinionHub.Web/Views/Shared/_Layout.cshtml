@@ -63,8 +63,13 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
+                                <a class="dropdown-item" asp-area="" asp-controller="Polls" asp-action="Profile">
+                                    <i class="bi bi-person me-2"></i>Мои опросы
+                                </a>
+                            </li>
+                            <li>
                                 <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">
-                                    <i class="bi bi-gear me-2"></i>Профиль
+                                    <i class="bi bi-gear me-2"></i>Настройки аккаунта
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider" /></li>

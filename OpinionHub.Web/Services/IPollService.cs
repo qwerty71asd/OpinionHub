@@ -15,4 +15,5 @@ public interface IPollService
     Task<int> CompleteExpiredPollsAsync();
     Task<int> ArchiveOldPollsAsync(int archiveAfterDays);
     Task DeleteAsync(Guid pollId, string userId);
+    Task<List<Poll>> GetUserPollsAsync(string userId);
 }

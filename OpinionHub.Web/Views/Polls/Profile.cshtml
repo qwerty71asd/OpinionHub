@@ -1,0 +1,41 @@
+﻿@model OpinionHub.Web.ViewModels.UserProfileViewModel
+
+<div class="container mt-5">
+    <h2>Профиль пользователя: @Model.UserName</h2>
+    <p class="text-muted">Email: @Model.Email</p>
+
+    <h3 class="mt-4">Мои опросы</h3>
+    <table class="table table-hover mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Заголовок</th>
+                <th>Статус</th>
+                <th>Дата создания</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var poll in Model.MyPolls)
+            {
+                <tr>
+                    <td>@poll.Title</td>
+                    <td>
+                        <span class="badge @(poll.Status == PollStatus.Active ? "bg-success" : "bg-secondary")">
+                            @poll.Status
+                        </span>
+                    </td>
+                    <td>@poll.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-outline-primary">Открыть</a>
+                        @if (poll.Status == PollStatus.Draft)
+                        {
+                            <form asp-action="Publish" asp-route-id="@poll.Id" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-success">Опубликовать</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
