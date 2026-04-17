@@ -15,4 +15,14 @@ public class PollHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"poll-{pollId}");
     }
+
+    public async Task PollCreated(object pollData)
+    {
+        await Clients.All.SendAsync("ReceiveNewPoll", pollData);
+    }
+
+    public async Task PollDeleted(string pollId)
+    {
+        await Clients.All.SendAsync("RemovePoll", pollId);
+    }
 }

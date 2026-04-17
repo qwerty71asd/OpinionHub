@@ -1,132 +1,67 @@
-@model IReadOnlyCollection<OpinionHub.Web.Models.Poll>
-@using OpinionHub.Web.Models
+@model IEnumerable<OpinionHub.Web.Models.Poll>
 @{
-    ViewData["Title"] = "Лента опросов";
-    var active = Model.Count(p => p.Status == PollStatus.Active);
-    var drafts = Model.Count(p => p.Status == PollStatus.Draft);
-    var completed = Model.Count(p => p.Status == PollStatus.Completed);
+    ViewData["Title"] = "Главная";
 }
 
-<div class="oh-hero py-5 mb-4">
-    <div class="container">
-        <div class="row align-items-center gy-4">
-            <div class="col-lg-7">
-                <h1 class="display-5 fw-semibold mb-2">OpinionHub</h1>
-                <p class="lead text-secondary mb-4">
-                    Создавай опросы, собирай голоса и смотри результаты в реальном времени.
-                </p>
-
-                <div class="d-flex flex-wrap gap-2">
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        <a asp-controller="Polls" asp-action="Create" class="btn btn-primary btn-lg">Создать опрос</a>
-                        <a href="#feed" class="btn btn-outline-secondary btn-lg">К ленте</a>
-                    }
-                    else
-                    {
-                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg">Регистрация</a>
-                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg">Войти</a>
-                    }
-                </div>
-            </div>
-
-            <div class="col-lg-5">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="card border-0 shadow-sm oh-card">
-                            <div class="card-body">
-                                <div class="text-secondary small">Активные</div>
-                                <div class="h3 mb-0">@active</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card border-0 shadow-sm oh-card">
-                            <div class="card-body">
-                                <div class="text-secondary small">Черновики</div>
-                                <div class="h3 mb-0">@drafts</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm oh-card">
-                            <div class="card-body">
-                                <div class="text-secondary small">Завершённые</div>
-                                <div class="h3 mb-0">@completed</div>
-                                <div class="small text-secondary">Всего опросов: <strong>@Model.Count</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5 fw-bold">Активные опросы</h1>
+        <a asp-controller="Polls" asp-action="Create" class="btn btn-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-lg"></i> Создать опрос
+        </a>
     </div>
-</div>
 
-<div class="container pb-5" id="feed">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 mb-0">Лента</h2>
-        @if (User.Identity?.IsAuthenticated == true)
+    <hr class="mb-5">
+
+    <div class="row g-4" id="poll-feed-container">
+        @if (!Model.Any())
         {
-            <a asp-controller="Polls" asp-action="Create" class="btn btn-sm btn-primary">+ Новый опрос</a>
-        }
-    </div>
-
-    @if (!Model.Any())
-    {
-        <div class="card border-0 shadow-sm oh-card">
-            <div class="card-body p-4">
-                <div class="text-secondary">Пока нет ни одного опроса. Создай первый ✨</div>
+            <div class="col-12 text-center py-5" id="no-polls-msg">
+                <p class="text-secondary fs-4">Пока нет ни одного активного опроса. Будьте первым!</p>
             </div>
-        </div>
-    }
-    else
-    {
-        <div class="row g-3">
+        }
+        else
+        {
             @foreach (var poll in Model)
             {
-                var badgeClass = poll.Status switch
-                {
-                    PollStatus.Active => "text-bg-success",
-                    PollStatus.Draft => "text-bg-warning",
-                    PollStatus.Completed => "text-bg-secondary",
-                    PollStatus.Archived => "text-bg-dark",
-                    _ => "text-bg-secondary"
-                };
+                /* Каждая карточка имеет уникальный ID для удаления через SignalR */
+                <div class="col-md-6 col-lg-4" id="poll-card-@poll.Id">
+                    <div class="card h-100 shadow-sm border-0 oh-card border-top border-primary border-4">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <h5 class="card-title fw-bold mb-3 text-truncate">@poll.Title</h5>
 
-                <div class="col-12 col-md-6 col-lg-4">
-                    <a class="text-decoration-none" asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id">
-                        <div class="card border-0 shadow-sm oh-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <h3 class="h6 fw-semibold mb-2 text-body">@poll.Title</h3>
-                                    <span class="badge @badgeClass">@poll.Status</span>
+                            <div class="mt-auto">
+                                <div class="d-flex align-items-center mb-3 text-secondary small">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    <span>Автор: @(poll.Author?.UserName ?? "Аноним")</span>
                                 </div>
 
-                                <div class="small text-secondary mb-3">
-                                    Тип: <strong>@poll.PollType</strong>
-                                    <span class="mx-1">•</span>
-                                    Видимость: <strong>@poll.VisibilityType</strong>
-                                    <span class="mx-1">•</span>
-                                    Доступ: <strong>@(poll.AudienceType == AudienceType.Everyone ? "Все" : "Выбранные")</strong>
-                                </div>
-
-                                <div class="d-flex justify-content-between align-items-center small text-secondary">
-                                    <span>Вариантов: <strong>@poll.Options.Count</strong></span>
-                                    @if (poll.EndDateUtc is not null)
-                                    {
-                                        <span>До: <strong>@poll.EndDateUtc.Value.ToLocalTime().ToString("dd.MM HH:mm")</strong></span>
-                                    }
-                                    else
-                                    {
-                                        <span>Без дедлайна</span>
-                                    }
-                                </div>
+                                <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id"
+                                   class="btn btn-outline-primary w-100 fw-semibold">
+                                    Голосовать
+                                </a>
                             </div>
                         </div>
-                    </a>
+                    </div>
                 </div>
             }
-        </div>
-    }
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/poll-feed.js"></script>
+}
+
+<style>
+    /* Небольшой бонус для красоты карточек */
+    .oh-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .oh-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+</style>
