@@ -1,5 +1,6 @@
 using System.Text;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.EntityFrameworkCore;
 using OpinionHub.Web.Data;
 using OpinionHub.Web.Models;
@@ -310,5 +311,12 @@ public class PollService : IPollService
         });
 
         await _db.SaveChangesAsync();
+    }
+    public async Task<List<Poll>> GetUserPollsAsync(string userId)
+    {
+        return await _db.Polls
+            .Where(p => p.AuthorId == userId)
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .ToListAsync();
     }
 }

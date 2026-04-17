@@ -196,4 +196,23 @@ public class PollsController : Controller
         var bytes = await _pollService.ExportXlsxAsync(id, userId);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "results.xlsx");
     }
+    [HttpGet]
+    public async Task<IActionResult> Profile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Challenge();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        var polls = await _pollService.GetUserPollsAsync(userId);
+
+        var viewModel = new UserProfileViewModel
+        {
+            UserName = user.UserName,
+            Email = user.Email,
+            MyPolls = polls
+        };
+
+        return View(viewModel);
+    }
+
 } // Это ЕДИНСТВЕННАЯ закрывающая скобка в конце файла
