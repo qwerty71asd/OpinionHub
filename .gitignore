@@ -1,9 +1,12 @@
-bin/
-obj/
-.vs/
 *.user
 *.suo
 *.db
 *.log
 artifacts/
 TestResults/
+[Cc]onfig.json
+appsettings.json
+appsettings.*.json
+bin/
+obj/
+.vs/
