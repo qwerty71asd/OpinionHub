@@ -16,4 +16,5 @@ public interface IPollService
     Task<int> ArchiveOldPollsAsync(int archiveAfterDays);
     Task DeleteAsync(Guid pollId, string userId);
     Task<List<Poll>> GetUserPollsAsync(string userId);
+    Task<List<Poll>> GetVotedPollsAsync(string userId);
 }

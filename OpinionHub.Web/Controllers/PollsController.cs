@@ -59,7 +59,7 @@ public class PollsController : Controller
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var poll = await _pollService.CreateDraftAsync(model, userId);
-            if (poll.Status == PollStatus.Active) 
+            if (poll.Status == PollStatus.Active)
             {
                 await _hub.Clients.All.SendAsync("ReceiveNewPoll", new
                 {
@@ -111,7 +111,8 @@ public class PollsController : Controller
             if (updatedPoll != null)
             {
                 var total = updatedPoll.Votes.Count;
-                var stats = updatedPoll.Options.Select(o => new {
+                var stats = updatedPoll.Options.Select(o => new
+                {
                     id = o.Id,
                     count = updatedPoll.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)),
                     percent = total == 0 ? 0 : Math.Round((double)updatedPoll.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)) * 100 / total, 1)
@@ -160,7 +161,7 @@ public class PollsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id, string? returnUrl = null)
     {
         var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Details), "Polls", new { id }));
         if (gate is not null) return gate;
@@ -169,7 +170,15 @@ public class PollsController : Controller
         try
         {
             await _pollService.DeleteAsync(id, userId);
+
+            // SignalR: удаляем у всех из ленты
             await _hub.Clients.All.SendAsync("RemovePoll", id.ToString());
+
+            // Если нам передали ссылку для возврата (например, из профиля) — идем по ней
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            // Иначе (по умолчанию) идем на главную
             return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)
@@ -197,22 +206,27 @@ public class PollsController : Controller
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "results.xlsx");
     }
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> Profile()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Challenge();
 
         var user = await _userManager.FindByIdAsync(userId);
-        var polls = await _pollService.GetUserPollsAsync(userId);
+        if (user == null) return NotFound();
+
+        var myPolls = await _pollService.GetUserPollsAsync(userId);
+        var votedPolls = await _pollService.GetVotedPollsAsync(userId);
 
         var viewModel = new UserProfileViewModel
         {
-            UserName = user.UserName,
-            Email = user.Email,
-            MyPolls = polls
+            UserName = user.UserName ?? "Пользователь",
+            Email = user.Email ?? "",
+            MyPolls = myPolls,
+            VotedPolls = votedPolls
         };
 
         return View(viewModel);
     }
 
-} // Это ЕДИНСТВЕННАЯ закрывающая скобка в конце файла
+}
