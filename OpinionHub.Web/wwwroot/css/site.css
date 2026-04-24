@@ -1,108 +1,109 @@
 :root {
-  --oh-radius: 18px;
+    --oh-radius: 18px;
 }
 
 .oh-body {
-  min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .18), transparent 55%),
-    radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .16), transparent 55%),
-    radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%);
+    min-height: 100vh;
+    background: radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .18), transparent 55%), radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .16), transparent 55%), radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%);
 }
 
 /* Тёмная тема: чуть другой фон */
 html[data-bs-theme="dark"] .oh-body {
-  background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .22), transparent 55%),
-    radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .18), transparent 55%),
-    radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%),
-    linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,0));
+    background: radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .22), transparent 55%), radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .18), transparent 55%), radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%), linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,0));
 }
 
 .navbar-blur {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(0,0,0,.06);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(0,0,0,.06);
 }
 
 html[data-bs-theme="dark"] .navbar-blur {
-  background: rgba(20, 20, 20, 0.65);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(20, 20, 20, 0.65);
+    border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
 .brand-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #0d6efd, #20c997);
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0d6efd, #20c997);
 }
 
 .oh-hero {
-  background: rgba(255,255,255,.60);
-  border-bottom: 1px solid rgba(0,0,0,.06);
+    background: rgba(255,255,255,.60);
+    border-bottom: 1px solid rgba(0,0,0,.06);
 }
 
 html[data-bs-theme="dark"] .oh-hero {
-  background: rgba(20,20,20,.55);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(20,20,20,.55);
+    border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
+/* --- КАРТОЧКИ: GLASSMORPHISM --- */
 .oh-card {
-  border-radius: var(--oh-radius);
+    border-radius: var(--oh-radius);
+    background: rgba(255, 255, 255, 0.85); /* Полупрозрачный белый */
+    backdrop-filter: blur(10px); /* Размытие фона под карточкой */
+}
+
+html[data-bs-theme="dark"] .oh-card {
+    background: rgba(30, 30, 30, 0.75); /* Полупрозрачный тёмный */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 .oh-card .card-body {
-  border-radius: var(--oh-radius);
+    border-radius: var(--oh-radius);
 }
 
 .progress {
-  height: 10px;
-  border-radius: 999px;
+    height: 10px;
+    border-radius: 999px;
 }
 
 .progress-bar {
-  border-radius: 999px;
+    border-radius: 999px;
 }
 
 .oh-chart-wrap {
-  border-radius: var(--oh-radius);
-  background: rgba(255,255,255,.55);
-  border: 1px solid rgba(0,0,0,.06);
-  padding: 14px;
+    border-radius: var(--oh-radius);
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(0,0,0,.06);
+    padding: 14px;
 }
 
 html[data-bs-theme="dark"] .oh-chart-wrap {
-  background: rgba(20,20,20,.45);
-  border: 1px solid rgba(255,255,255,.08);
+    background: rgba(20,20,20,.45);
+    border: 1px solid rgba(255,255,255,.08);
 }
 
 .footer {
-  background: rgba(255,255,255,.45);
-  border-top: 1px solid rgba(0,0,0,.06);
+    background: rgba(255,255,255,.45);
+    border-top: 1px solid rgba(0,0,0,.06);
 }
 
 html[data-bs-theme="dark"] .footer {
-  background: rgba(20,20,20,.35);
-  border-top: 1px solid rgba(255,255,255,.08);
+    background: rgba(20,20,20,.35);
+    border-top: 1px solid rgba(255,255,255,.08);
 }
 
 /* Toggler icon visibility when using custom navbar background */
 .navbar .navbar-toggler {
-  border: 1px solid rgba(0,0,0,.15);
+    border: 1px solid rgba(0,0,0,.15);
 }
 
 html[data-bs-theme="dark"] .navbar .navbar-toggler {
-  border: 1px solid rgba(255,255,255,.20);
+    border: 1px solid rgba(255,255,255,.20);
 }
 
 html[data-bs-theme="dark"] .navbar-toggler-icon {
-  filter: invert(1);
+    filter: invert(1);
 }
 
-
 /* Auth pages (Login/Register) */
-.auth-wrapper{
+.auth-wrapper {
     min-height: calc(100vh - 120px);
     display: flex;
     align-items: center;
@@ -110,7 +111,7 @@ html[data-bs-theme="dark"] .navbar-toggler-icon {
     padding: 2rem 1rem;
 }
 
-.auth-card{
+.auth-card {
     width: 100%;
     max-width: 460px;
     padding: 1.5rem;
@@ -120,7 +121,127 @@ html[data-bs-theme="dark"] .navbar-toggler-icon {
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.05);
 }
 
-@media (max-width: 576px){
-    .auth-wrapper{ padding: 1.25rem .75rem; }
-    .auth-card{ padding: 1.25rem; border-radius: 0.5rem; }
+@media (max-width: 576px) {
+    .auth-wrapper {
+        padding: 1.25rem .75rem;
+    }
+
+    .auth-card {
+        padding: 1.25rem;
+        border-radius: 0.5rem;
+    }
 }
+
+/* --- СТИЛИЗАЦИЯ ИНПУТОВ И ЭЛЕМЕНТОВ ПОД ТЁМНУЮ ТЕМУ --- */
+html[data-bs-theme="dark"] .form-control,
+html[data-bs-theme="dark"] .form-select,
+html[data-bs-theme="dark"] .input-group-text {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e9ecef;
+}
+
+    html[data-bs-theme="dark"] .form-control:focus,
+    html[data-bs-theme="dark"] .form-select:focus {
+        background-color: rgba(0, 0, 0, 0.4);
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        color: #fff;
+    }
+
+html[data-bs-theme="dark"] .list-group-item {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e9ecef;
+}
+
+    html[data-bs-theme="dark"] .list-group-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+/* Приглушаем дефолтные рамки Bootstrap в темной теме */
+html[data-bs-theme="dark"] .border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-bs-theme="dark"] .border-bottom {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-bs-theme="dark"] .border-top {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* --- СТИЛИЗАЦИЯ ФОРМ И ЭЛЕМЕНТОВ ДЛЯ ТЕМНОЙ ТЕМЫ --- */
+html[data-bs-theme="dark"] {
+    /* Меняем базовый цвет текста для всего документа на светлый */
+    --bs-body-color: #e9ecef;
+}
+
+    html[data-bs-theme="dark"] .form-control,
+    html[data-bs-theme="dark"] .form-select,
+    html[data-bs-theme="dark"] .input-group-text,
+    html[data-bs-theme="dark"] .form-control[type="file"]::file-selector-button {
+        background-color: rgba(0, 0, 0, 0.25) !important; /* Тёмный полупрозрачный фон */
+        border-color: rgba(255, 255, 255, 0.1) !important; /* Едва заметная рамка */
+        color: #f8f9fa !important; /* Белый текст */
+    }
+
+        /* Стилизация плейсхолдера (подсказки в пустом поле) */
+        html[data-bs-theme="dark"] .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Стилизация поля при фокусе (когда печатаешь) */
+        html[data-bs-theme="dark"] .form-control:focus,
+        html[data-bs-theme="dark"] .form-select:focus {
+            background-color: rgba(0, 0, 0, 0.4) !important;
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            color: #fff !important;
+        }
+
+    /* Выпадающие опции в select */
+    html[data-bs-theme="dark"] option {
+        background-color: #212529; /* Темный фон для опций списка */
+        color: #fff;
+    }
+
+    /* Стилизация списков (результаты поиска пользователей) */
+    html[data-bs-theme="dark"] .list-group-item {
+        background-color: rgba(30, 30, 30, 0.9) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: #e9ecef !important;
+    }
+
+        html[data-bs-theme="dark"] .list-group-item:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+    /* Приглушаем дефолтные белые рамки */
+    html[data-bs-theme="dark"] .border,
+    html[data-bs-theme="dark"] .border-bottom,
+    html[data-bs-theme="dark"] .border-top,
+    html[data-bs-theme="dark"] .border-start,
+    html[data-bs-theme="dark"] .border-end {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Темные карточки-вспомогательные элементы (например, bg-body-tertiary) */
+    html[data-bs-theme="dark"] .bg-body-tertiary,
+    html[data-bs-theme="dark"] .bg-light,
+    html[data-bs-theme="dark"] .bg-body {
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        color: #f8f9fa !important;
+    }
+
+    /* Лейбл для заглавного фото (который с пунктиром) */
+    html[data-bs-theme="dark"] label.btn-outline-secondary {
+        border-color: rgba(255,255,255, 0.2) !important;
+        color: #e9ecef !important;
+        background-color: rgba(0,0,0, 0.2) !important;
+    }
+
+        html[data-bs-theme="dark"] label.btn-outline-secondary:hover {
+            background-color: rgba(255,255,255, 0.05) !important;
+        }
