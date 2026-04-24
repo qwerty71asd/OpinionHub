@@ -26,7 +26,20 @@
             {
                 /* Каждая карточка имеет уникальный ID для удаления через SignalR */
                 <div class="col-md-6 col-lg-4" id="poll-card-@poll.Id">
-                    <div class="card h-100 shadow-sm border-0 oh-card border-top border-primary border-4">
+                    <div class="card h-100 shadow-sm border-0 oh-card overflow-hidden">
+
+                        @if (!string.IsNullOrEmpty(poll.CoverImagePath))
+                        {
+                            <img src="@poll.CoverImagePath" class="card-img-top border-bottom border-primary border-4" style="height: 200px; object-fit: cover;" alt="Обложка">
+                        }
+                        else
+                        {
+                            <div class="card-img-top border-bottom border-primary border-4 d-flex flex-column align-items-center justify-content-center"
+                                 style="height: 200px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <i class="bi bi-ui-radios-grid" style="font-size: 3.5rem; color: #ced4da;"></i>
+                            </div>
+                        }
+
                         <div class="card-body p-4 d-flex flex-column">
                             <h5 class="card-title fw-bold mb-3 text-truncate">@poll.Title</h5>
 

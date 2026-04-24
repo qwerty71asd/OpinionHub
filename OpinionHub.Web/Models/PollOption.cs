@@ -8,4 +8,5 @@ public class PollOption
     public Poll? Poll { get; set; }
     // Коллекция с 
     public ICollection<VoteSelection> VoteSelections { get; set; } = new List<VoteSelection>();
+    public string? ImagePath { get; set; }
 }

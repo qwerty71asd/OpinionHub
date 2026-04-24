@@ -28,4 +28,6 @@ public class Poll
     public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
     public ICollection<PollAllowedUser> AllowedUsers { get; set; } = new List<PollAllowedUser>();
+    public string? CoverImagePath { get; set; }
+    public ICollection<PollAttachment> Attachments { get; set; } = new List<PollAttachment>();
 }

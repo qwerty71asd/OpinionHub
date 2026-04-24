@@ -23,7 +23,7 @@
             <div class="card border-0 shadow-sm oh-card">
                 <div class="card-body p-4 p-md-5">
 
-                    <form asp-action="Create" method="post">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
 
                         @if (!ViewData.ModelState.IsValid)
@@ -31,20 +31,36 @@
                             <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
                         }
 
-                        <div class="mb-3">
-                            <label asp-for="Title" class="form-label">Название</label>
-                            <input asp-for="Title" class="form-control" placeholder="Например: Где будем обедать?" />
+                        <div class="mb-4">
+                            <label asp-for="Title" class="form-label fw-bold">Название</label>
+                            <input asp-for="Title" class="form-control form-control-lg" placeholder="Например: Где будем обедать?" />
                             <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4 p-3 border rounded bg-body-tertiary">
+                            <label class="form-label fw-bold">Заглавное фото (Обложка)</label>
+                            <div class="form-text mb-2">Рекомендуемое соотношение 16:9. Фото будет отображаться в ленте.</div>
+                            <input type="file" asp-for="CoverImage" class="form-control" id="coverInput" accept="image/*" />
+
+                            <div id="coverPreviewContainer" class="mt-3 d-none">
+                                <img id="coverPreview" class="img-fluid rounded border shadow-sm mb-2" style="max-height: 250px; object-fit: cover; width: 100%;" />
+                                <div id="aspectRatioWarning" class="alert alert-warning d-none mb-0">
+                                    <i class="bi bi-exclamation-triangle"></i> Соотношение сторон этого фото отличается от 16:9. В ленте оно может выглядеть обрезанным.
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveToAttachments()">Сделать обычным вложением</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label asp-for="PollType" class="form-label">Тип голосования</label>
-                                <select asp-for="PollType" asp-items="Html.GetEnumSelectList<PollType>()" class="form-select"></select>
+                                <select asp-for="PollType" asp-items="Html.GetEnumSelectList<OpinionHub.Web.Models.PollType>()" class="form-select"></select>
                             </div>
                             <div class="col-md-6">
                                 <label asp-for="VisibilityType" class="form-label">Видимость</label>
-                                <select asp-for="VisibilityType" asp-items="Html.GetEnumSelectList<VisibilityType>()" class="form-select"></select>
+                                <select asp-for="VisibilityType" asp-items="Html.GetEnumSelectList<OpinionHub.Web.Models.VisibilityType>()" class="form-select"></select>
                                 <div class="form-text">Anonymous скрывает, кто как проголосовал.</div>
                             </div>
                         </div>
@@ -55,14 +71,13 @@
                                 <option value="Everyone">Все пользователи</option>
                                 <option value="SelectedUsers">Только выбранные пользователи</option>
                             </select>
-                            <div class="form-text">Для "Только выбранные" добавь участников через поиск по имени пользователя.</div>
+                            <div class="form-text">Для "Только выбранные" добавь участников через поиск.</div>
                         </div>
 
                         <div id="audienceUsersBox" class="mt-3 border rounded-3 p-3 bg-body-tertiary d-none">
                             <label class="form-label">Участники</label>
-                            <input type="text" class="form-control" id="userSearch" placeholder="Начни вводить имя пользователя (минимум 2 символа)…" autocomplete="off" />
+                            <input type="text" class="form-control" id="userSearch" placeholder="Начни вводить имя пользователя…" autocomplete="off" />
                             <div class="list-group mt-2" id="userResults" style="max-height: 220px; overflow:auto;"></div>
-                            <div class="form-text mt-2">Нажми на найденного пользователя, чтобы добавить. Автор всегда имеет доступ.</div>
 
                             <div id="selectedUsers" class="mt-3 d-flex flex-wrap gap-2"></div>
                             <div id="audienceValidation" class="text-danger small mt-2 d-none">Добавь хотя бы одного пользователя.</div>
@@ -75,7 +90,7 @@
                                 <div class="form-text">Вводится в <strong>местном времени</strong>, хранится в UTC.</div>
                             </div>
                             <div class="col-md-6 d-flex align-items-end">
-                                <div class="form-check">
+                                <div class="form-check mb-2">
                                     <input asp-for="CanChangeVote" class="form-check-input" />
                                     <label asp-for="CanChangeVote" class="form-check-label">Разрешить менять голос</label>
                                 </div>
@@ -84,29 +99,36 @@
 
                         <hr class="my-4" />
 
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0">Варианты ответа</h5>
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="addOptionBtn">
-                                + Добавить
-                            </button>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0 fw-bold">Варианты ответа</h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addOptionBtn">+ Добавить</button>
                         </div>
 
-                        <div id="optionsList" class="vstack gap-2">
+                        <div id="optionsList" class="vstack gap-3">
                             @for (var i = 0; i < Model.Options.Count; i++)
                             {
-                                <div class="input-group">
+                                <div class="input-group align-items-center">
                                     <span class="input-group-text">@(i + 1)</span>
-                                    <input name="Options[@i]" class="form-control" value="@Model.Options[i]" placeholder="Вариант ответа" />
+                                    <input name="Options[@i].Text" class="form-control" value="@Model.Options[i].Text" placeholder="Текст варианта" />
+                                    <input type="file" name="Options[@i].Image" class="form-control" accept="image/*" style="max-width: 220px;" title="Фото варианта" />
                                     <button type="button" class="btn btn-outline-danger remove-option" title="Удалить">✕</button>
                                 </div>
                             }
                         </div>
 
-                        <div class="d-flex flex-column flex-md-row gap-2 mt-4">
+                        <hr class="my-4" />
+
+                        <div class="mb-4 p-3 border rounded">
+                            <label asp-for="AttachedFiles" class="form-label fw-bold">Дополнительные файлы</label>
+                            <input type="file" asp-for="AttachedFiles" class="form-control" multiple id="attachmentInput" />
+                            <div class="form-text">Можно выбрать несколько файлов. Они будут доступны для скачивания внутри опроса.</div>
+                        </div>
+
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2 mt-4">
                             <button type="submit" class="btn btn-outline-secondary" name="PublishNow" value="false">
                                 Сохранить как черновик
                             </button>
-                            <button type="submit" class="btn btn-primary" name="PublishNow" value="true">
+                            <button type="submit" class="btn btn-primary px-4" name="PublishNow" value="true">
                                 Опубликовать
                             </button>
                         </div>
@@ -119,6 +141,7 @@
 
 @section Scripts {
     <script>
+        // Скрипт для вариантов ответа (Твой, но слегка обновленный для файлов)
         (function () {
             const list = document.getElementById('optionsList');
             const addBtn = document.getElementById('addOptionBtn');
@@ -128,8 +151,13 @@
                 groups.forEach((g, idx) => {
                     const badge = g.querySelector('.input-group-text');
                     if (badge) badge.textContent = String(idx + 1);
-                    const input = g.querySelector('input');
-                    if (input) input.name = `Options[${idx}]`;
+
+                    // Обновляем имена инпутов
+                    const textInput = g.querySelector('input[type="text"]') || g.querySelector('input:not([type="file"])');
+                    if (textInput) textInput.name = `Options[${idx}].Text`;
+
+                    const fileInput = g.querySelector('input[type="file"]');
+                    if (fileInput) fileInput.name = `Options[${idx}].Image`;
                 });
             }
 
@@ -140,7 +168,6 @@
                 if (!group) return;
                 group.remove();
                 if (list.querySelectorAll('.input-group').length < 2) {
-                    // минимум 2 поля
                     addOption('');
                 }
                 renumber();
@@ -149,12 +176,13 @@
             function addOption(value) {
                 const idx = list.querySelectorAll('.input-group').length;
                 const wrap = document.createElement('div');
-                wrap.className = 'input-group';
+                wrap.className = 'input-group align-items-center';
                 wrap.innerHTML = `
-                    <span class="input-group-text">${idx + 1}</span>
-                    <input name="Options[${idx}]" class="form-control" placeholder="Вариант ответа" value="${(value ?? '').replace(/"/g, '&quot;')}" />
-                    <button type="button" class="btn btn-outline-danger remove-option" title="Удалить">✕</button>
-                `;
+                            <span class="input-group-text">${idx + 1}</span>
+                            <input name="Options[${idx}].Text" class="form-control" placeholder="Текст варианта" value="${(value ?? '').replace(/"/g, '&quot;')}" />
+                            <input type="file" name="Options[${idx}].Image" class="form-control" accept="image/*" style="max-width: 220px;" title="Фото варианта" />
+                            <button type="button" class="btn btn-outline-danger remove-option" title="Удалить">✕</button>
+                        `;
                 list.appendChild(wrap);
             }
 
@@ -163,9 +191,66 @@
                 renumber();
             });
         })();
-    </script>
 
-    <script>
+        // Скрипт проверки соотношения сторон обложки (Новый)
+        (function () {
+            const coverInput = document.getElementById('coverInput');
+            const previewContainer = document.getElementById('coverPreviewContainer');
+            const previewImage = document.getElementById('coverPreview');
+            const warning = document.getElementById('aspectRatioWarning');
+
+            coverInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    previewContainer.classList.add('d-none');
+                    return;
+                }
+
+                const url = URL.createObjectURL(file);
+                previewImage.src = url;
+                previewContainer.classList.remove('d-none');
+
+                previewImage.onload = function () {
+                    const ratio = this.naturalWidth / this.naturalHeight;
+                    const targetRatio = 16 / 9; // ~1.77
+
+                    // Если отклонение больше 10% от 16:9, показываем предупреждение
+                    if (Math.abs(ratio - targetRatio) > 0.17) {
+                        warning.classList.remove('d-none');
+                    } else {
+                        warning.classList.add('d-none');
+                    }
+                }
+            });
+        })();
+
+        // Функция переноса обложки во вложения (вызывается из предупреждения)
+        window.moveToAttachments = function () {
+            const coverInput = document.getElementById('coverInput');
+            const attachmentInput = document.getElementById('attachmentInput');
+
+            // Имитация переноса: DataTransfer API позволяет программно задавать файлы
+            const dt = new DataTransfer();
+
+            // Копируем существующие вложения
+            for (let i = 0; i < attachmentInput.files.length; i++) {
+                dt.items.add(attachmentInput.files[i]);
+            }
+            // Добавляем обложку
+            if (coverInput.files.length > 0) {
+                dt.items.add(coverInput.files[0]);
+            }
+
+            attachmentInput.files = dt.files;
+            coverInput.value = ''; // Очищаем обложку
+            document.getElementById('coverPreviewContainer').classList.add('d-none');
+
+            // Подсветка поля вложений, чтобы юзер понял, что произошло
+            attachmentInput.classList.add('is-valid');
+            setTimeout(() => attachmentInput.classList.remove('is-valid'), 2000);
+        };
+
+        // Твой оригинальный скрипт для поиска пользователей
         (function () {
             const audienceSelect = document.getElementById('audienceSelect');
             const box = document.getElementById('audienceUsersBox');
@@ -254,16 +339,12 @@
                         const resp = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { signal: abort.signal });
                         if (!resp.ok) return;
                         const data = await resp.json();
-                        // фильтруем уже выбранных
                         const filtered = (data || []).filter(x => !selectedIds.has(x.id));
                         renderResults(filtered);
-                    } catch {
-                        // ignore
-                    }
+                    } catch { }
                 }, 200);
             });
 
-            // простая проверка перед submit
             document.querySelector('form')?.addEventListener('submit', (e) => {
                 if (audienceSelect.value === 'SelectedUsers' && selectedIds.size === 0) {
                     validation.classList.remove('d-none');
