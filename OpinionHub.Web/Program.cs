@@ -54,6 +54,7 @@ builder.Services.AddSingleton<IValidationAttributeAdapterProvider, RuValidationA
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
 

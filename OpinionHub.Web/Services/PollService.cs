@@ -12,12 +12,15 @@ public class PollService : IPollService
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PollService> _logger;
+    private readonly IFileStorageService _fileStorage; // Добавляем сервис хранилища
 
-    public PollService(ApplicationDbContext db, ILogger<PollService> logger)
+    public PollService(ApplicationDbContext db, ILogger<PollService> logger, IFileStorageService fileStorage)
     {
         _db = db;
         _logger = logger;
+        _fileStorage = fileStorage;
     }
+
     public async Task<Poll> CreateDraftAsync(CreatePollViewModel model, string authorId)
     {
         var title = model.Title?.Trim();
@@ -36,26 +39,15 @@ public class PollService : IPollService
             if (endUtc.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("Дата окончания должна быть в будущем.");
         }
-        
-        var options = (model.Options ?? new List<string>())
-            .Select(o => o?.Trim())
-            .Where(o => !string.IsNullOrWhiteSpace(o))
-            .Select(o => o!) 
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
 
-        if (options.Count < 2) throw new InvalidOperationException("Нужно минимум 2 уникальных варианта.");
+        // 1. Обработка заглавного фото
+        string? coverPath = null;
+        if (model.CoverImage != null)
+        {
+            coverPath = await _fileStorage.SaveFileAsync(model.CoverImage, "covers");
+        }
 
-        // ACL: выбранные участники
-        var allowedUserIds = (model.AllowedUserIds ?? new List<string>())
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        if (model.AudienceType == AudienceType.SelectedUsers && allowedUserIds.Count == 0)
-            throw new InvalidOperationException("Для закрытого опроса нужно добавить хотя бы одного участника.");
-
+        // 2. Создание объекта опроса
         var poll = new Poll
         {
             Title = title,
@@ -66,14 +58,52 @@ public class PollService : IPollService
             EndDateUtc = endUtc,
             AuthorId = authorId,
             Status = model.PublishNow ? PollStatus.Active : PollStatus.Draft,
-            Options = options.Select(o => new PollOption { Text = o }).ToList(),
+            CoverImagePath = coverPath, // Сохраняем путь к обложке
             AllowedUsers = model.AudienceType == AudienceType.SelectedUsers
-                ? allowedUserIds.Select(uid => new PollAllowedUser { UserId = uid }).ToList()
+                ? (model.AllowedUserIds ?? new List<string>()).Select(uid => new PollAllowedUser { UserId = uid }).ToList()
                 : new List<PollAllowedUser>()
         };
 
+        // 3. Обработка вариантов ответа с картинками
+        foreach (var optVm in model.Options ?? new List<CreatePollOptionVm>())
+        {
+            if (string.IsNullOrWhiteSpace(optVm.Text)) continue;
+
+            string? optImagePath = null;
+            if (optVm.Image != null)
+            {
+                optImagePath = await _fileStorage.SaveFileAsync(optVm.Image, "options");
+            }
+
+            poll.Options.Add(new PollOption
+            {
+                Text = optVm.Text.Trim(),
+                ImagePath = optImagePath
+            });
+        }
+
+        if (poll.Options.Count < 2)
+            throw new InvalidOperationException("Нужно минимум 2 уникальных варианта.");
+
+        // 4. Обработка дополнительных вложений
+        if (model.AttachedFiles != null && model.AttachedFiles.Count > 0)
+        {
+            foreach (var file in model.AttachedFiles)
+            {
+                var filePath = await _fileStorage.SaveFileAsync(file, "attachments");
+                poll.Attachments.Add(new PollAttachment
+                {
+                    FilePath = filePath,
+                    OriginalFileName = file.FileName,
+                    ContentType = file.ContentType,
+                    FileSize = file.Length
+                });
+            }
+        }
+
         _db.Polls.Add(poll);
         _db.AuditLogs.Add(new AuditLog { EventType = "POLL_CREATED", PollId = poll.Id, UserId = authorId, Details = poll.Title });
+
         await _db.SaveChangesAsync();
         return poll;
     }
@@ -150,6 +180,7 @@ public class PollService : IPollService
             .Include(p => p.Author)
             .Include(p => p.Options)
             .Include(p => p.AllowedUsers)
+            .Include(p => p.Attachments)
             .Include(p => p.Votes).ThenInclude(v => v.Selections)
             .FirstOrDefaultAsync(p => p.Id == pollId);
 

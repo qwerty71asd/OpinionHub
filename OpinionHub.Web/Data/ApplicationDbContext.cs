@@ -16,7 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<VoteSelection> VoteSelections => Set<VoteSelection>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<PollAllowedUser> PollAllowedUsers => Set<PollAllowedUser>();
-
+    public DbSet<PollAttachment> PollAttachments { get; set; }
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -58,6 +58,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PollAttachment>()
+            .HasOne(pa => pa.Poll)
+            .WithMany(p => p.Attachments)
+            .HasForeignKey(pa => pa.PollId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

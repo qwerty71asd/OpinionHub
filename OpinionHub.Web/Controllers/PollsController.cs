@@ -39,6 +39,7 @@ public class PollsController : Controller
         var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Create), "Polls"));
         if (gate is not null) return gate;
         return View(new CreatePollViewModel());
+
     }
 
     [HttpPost]
@@ -50,8 +51,9 @@ public class PollsController : Controller
 
         if (!ModelState.IsValid)
         {
-            model.Options ??= new List<string>();
-            while (model.Options.Count < 2) model.Options.Add(string.Empty);
+            // Теперь Options — это список CreatePollOptionVm, а не строк
+            model.Options ??= new List<CreatePollOptionVm>();
+            while (model.Options.Count < 2) model.Options.Add(new CreatePollOptionVm());
             return View(model);
         }
 

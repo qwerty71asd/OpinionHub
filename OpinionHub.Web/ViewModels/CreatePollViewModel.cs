@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http; // Обязательно для IFormFile
 using OpinionHub.Web.Models;
 
 namespace OpinionHub.Web.ViewModels;
@@ -16,9 +17,6 @@ public class CreatePollViewModel
 
     public DateTime? EndDateUtc { get; set; }
 
-    [MinLength(2, ErrorMessage = "Нужно минимум 2 варианта")]
-    public List<string> Options { get; set; } = new() { "", "" };
-
     /// <summary>
     /// Список UserId выбранных участников (если AudienceType == SelectedUsers).
     /// Приходит из формы как набор hidden-input с одинаковым именем.
@@ -26,4 +24,28 @@ public class CreatePollViewModel
     public List<string> AllowedUserIds { get; set; } = new();
 
     public bool PublishNow { get; set; }
+
+    // --- НОВЫЕ ПОЛЯ ДЛЯ МЕДИА ---
+
+    public IFormFile? CoverImage { get; set; }
+
+    // Список прикрепленных файлов (вложения)
+    public List<IFormFile>? AttachedFiles { get; set; }
+
+    // Обновленный список вариантов ответа (Текст + Картинка)
+    [MinLength(2, ErrorMessage = "Нужно минимум 2 варианта")]
+    public List<CreatePollOptionVm> Options { get; set; } = new()
+    {
+        new CreatePollOptionVm(),
+        new CreatePollOptionVm()
+    };
+}
+
+// Вспомогательный класс для вариантов ответа
+public class CreatePollOptionVm
+{
+    [Required(ErrorMessage = "Текст варианта обязателен")]
+    public string Text { get; set; } = string.Empty;
+
+    public IFormFile? Image { get; set; }
 }
