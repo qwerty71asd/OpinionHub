@@ -86,20 +86,24 @@ public class LoginModel : PageModel
         }
 
         // Если аккаунт заблокирован (админом или по lockout-политике) — показываем понятную страницу.
+        // Если аккаунт заблокирован — передаем данные и уходим на страницу Lockout
         if (result.IsLockedOut)
         {
-            resolvedUser ??= await _userManager.FindByNameAsync(Input.Login);
-            if (resolvedUser is not null)
+            // Мы уже пытались найти пользователя выше (resolvedUser). 
+            // Если он все еще null, пробуем найти его по Login (это может быть и ник, и почта).
+            resolvedUser ??= await _userManager.FindByNameAsync(Input.Login)
+                             ?? await _userManager.FindByEmailAsync(Input.Login);
+
+            if (resolvedUser?.LockoutEnd != null)
             {
+                // Прямое присваивание свойствам [TempData] — самый надежный способ.
+                // Превращаем дату в строку СРАЗУ здесь, чтобы избежать InvalidCastException.
+                LockoutUntilUtc = resolvedUser.LockoutEnd.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
                 LockoutLogin = resolvedUser.UserName;
-                var end = await _userManager.GetLockoutEndDateAsync(resolvedUser);
-                if (end.HasValue)
-                    LockoutUntilUtc = end.Value.UtcDateTime.ToString("O");
             }
 
             return RedirectToPage("./Lockout");
         }
-
         // Если email не подтверждён — не даём войти и перекидываем на страницу ввода кода.
         if (result.IsNotAllowed)
         {
