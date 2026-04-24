@@ -4,64 +4,92 @@
     ViewData["Title"] = "Изменить пользователя";
 }
 
-<h2 class="mb-3">Изменить пользователя</h2>
-
-<form method="post" class="row g-3" style="max-width: 900px;">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-
-    <div class="col-12">
-        <div asp-validation-summary="All" class="text-danger"></div>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="UserName" class="form-label"></label>
-        <input asp-for="UserName" class="form-control" />
-        <span asp-validation-for="UserName" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="PhoneNumber" class="form-label"></label>
-        <input asp-for="PhoneNumber" class="form-control" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6 d-flex align-items-end">
-        <div class="form-check">
-            <input asp-for="EmailConfirmed" class="form-check-input" />
-            <label asp-for="EmailConfirmed" class="form-check-label"></label>
+<div class="oh-hero py-4 py-md-5 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="display-6 mb-1">Изменить пользователя</h1>
+                <p class="text-secondary mb-0">Редактирование данных учетной записи: @Model.UserName</p>
+            </div>
+            <a class="btn btn-outline-secondary" asp-action="Index">
+                ← К списку
+            </a>
         </div>
     </div>
+</div>
 
-    <div class="col-12">
-        <label class="form-label">Роли</label>
-        <div class="d-flex flex-wrap gap-3">
-            @foreach (var r in Model.AvailableRoles)
-            {
-                var checkedNow = Model.SelectedRoles.Contains(r);
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@r" @(checkedNow ? "checked" : "") />
-                    <label class="form-check-label">@r</label>
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card border-0 shadow-sm oh-card" style="background: var(--bs-body-bg); opacity: 0.95;">
+                <div class="card-body p-4 p-md-5">
+
+                    <form method="post" class="row g-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="col-12">
+                            <div asp-validation-summary="All" class="text-danger small"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="UserName" class="form-label fw-bold"></label>
+                            <input asp-for="UserName" class="form-control" />
+                            <span asp-validation-for="UserName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-bold"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-bold"></label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6 d-flex align-items-center mt-md-4 pt-md-3">
+                            <div class="form-check form-switch fs-5 mb-0">
+                                <input asp-for="EmailConfirmed" class="form-check-input" id="emailConfirmedSwitch" />
+                                <label asp-for="EmailConfirmed" class="form-check-label fs-6 ms-2 text-body" for="emailConfirmedSwitch"></label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-3">Роли</label>
+                            <div class="p-3 border rounded" style="background: rgba(128,128,128,0.05);">
+                                <div class="d-flex flex-wrap gap-4">
+                                    @foreach (var r in Model.AvailableRoles)
+                                    {
+                                        var checkedNow = Model.SelectedRoles.Contains(r);
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@r" id="role_@r" @(checkedNow ? "checked" : "") />
+                                            <label class="form-check-label text-body" for="role_@r">@r</label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-0 border-0 shadow-sm" style="background: rgba(255, 193, 7, 0.1);">
+                                <div class="text-body"><b>LockoutEnd (UTC)</b>: @(Model.LockoutEndUtc?.ToString("u") ?? "—")</div>
+                                <div class="text-muted mt-1" style="font-size: 0.85rem">Для блокировки или разблокировки пользователя используйте соответствующие кнопки в главном списке панели администратора.</div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="col-12 d-flex flex-column flex-md-row justify-content-end gap-3">
+                            <a class="btn btn-light border px-4" asp-action="Index">Отмена</a>
+                            <button class="btn btn-primary px-5 fw-bold shadow-sm" type="submit">Сохранить изменения</button>
+                        </div>
+                    </form>
+
                 </div>
-            }
+            </div>
         </div>
     </div>
-
-    <div class="col-12">
-        <div class="alert alert-secondary mb-0">
-            <div><b>LockoutEnd (UTC)</b>: @(Model.LockoutEndUtc?.ToString("u") ?? "—")</div>
-            <div class="text-muted" style="font-size: 0.9rem">Если хочешь блокировать/разблокировать — используй кнопки в списке пользователей.</div>
-        </div>
-    </div>
-
-    <div class="col-12 d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Сохранить</button>
-        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
-    </div>
-</form>
+</div>

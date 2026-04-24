@@ -1,71 +1,115 @@
 @model OpinionHub.Web.Models.Admin.AdminUserCreateVm
 
 @{
-    ViewData["Title"] = "Создать пользователя";
+    ViewData["Title"] = "Создание пользователя";
 }
 
-<h2 class="mb-3">Создать пользователя</h2>
-
-<form method="post" class="row g-3" style="max-width: 900px;">
-    @Html.AntiForgeryToken()
-
-    <div class="col-12">
-        <div asp-validation-summary="All" class="text-danger"></div>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="UserName" class="form-label"></label>
-        <input asp-for="UserName" class="form-control" />
-        <span asp-validation-for="UserName" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6">
-        <label asp-for="PhoneNumber" class="form-label"></label>
-        <input asp-for="PhoneNumber" class="form-control" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-    </div>
-
-    <div class="col-md-6 d-flex align-items-end">
-        <div class="form-check">
-            <input asp-for="EmailConfirmed" class="form-check-input" />
-            <label asp-for="EmailConfirmed" class="form-check-label"></label>
+<div class="oh-hero py-4 py-md-5 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="display-6 mb-1">Новый пользователь</h1>
+                <p class="text-secondary mb-0">Добавление учетной записи вручную через панель администратора.</p>
+            </div>
+            <a class="btn btn-outline-secondary" asp-action="Index">
+                ← К списку
+            </a>
         </div>
     </div>
+</div>
 
-    <div class="col-md-6">
-        <label asp-for="Password" class="form-label"></label>
-        <input asp-for="Password" class="form-control" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card border-0 shadow-sm oh-card">
+                <div class="card-body p-4 p-md-5">
 
-    <div class="col-md-6">
-        <label asp-for="ConfirmPassword" class="form-label"></label>
-        <input asp-for="ConfirmPassword" class="form-control" />
-        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-    </div>
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
 
-    <div class="col-12">
-        <label class="form-label">Роли</label>
-        <div class="d-flex flex-wrap gap-3">
-            @foreach (var r in Model.AvailableRoles)
-            {
-                var checkedNow = Model.SelectedRoles.Contains(r);
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@r" @(checkedNow ? "checked" : "") />
-                    <label class="form-check-label">@r</label>
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div asp-validation-summary="All" class="alert alert-danger shadow-sm border-0" role="alert"></div>
+                        }
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="UserName" class="form-label fw-bold">Логин <span class="text-danger">*</span></label>
+                                <input asp-for="UserName" class="form-control" placeholder="Например: Ivan99" autocomplete="off" />
+                                <span asp-validation-for="UserName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PhoneNumber" class="form-label fw-bold">Телефон</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="+7 (999) 000-00-00" autocomplete="off" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Email" class="form-label fw-bold">Email</label>
+                            <div class="input-group">
+                                <input asp-for="Email" type="email" class="form-control" placeholder="name@example.com" autocomplete="off" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4 p-3 border rounded bg-body-tertiary">
+                            <div class="form-check form-switch fs-5 mb-0">
+                                <input class="form-check-input" type="checkbox" asp-for="EmailConfirmed" id="emailConfirmedSwitch">
+                                <label class="form-check-label fs-6 ms-2 mt-1" for="emailConfirmedSwitch">Почта подтверждена</label>
+                            </div>
+                            <div class="form-text ms-5 mt-0">Если включено, пользователю не придется подтверждать почту по ссылке.</div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label fw-bold">Пароль <span class="text-danger">*</span></label>
+                                <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" autocomplete="new-password" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label fw-bold">Повтор пароля <span class="text-danger">*</span></label>
+                                <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="••••••••" autocomplete="new-password" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mt-1">
+                                <div class="form-text text-muted">
+                                    <i class="bi bi-shield-lock"></i> Пароль должен быть надежным (содержать минимум 8 символов).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 p-3 border rounded bg-light">
+                            <label class="form-label fw-bold mb-3">Назначить роли</label>
+                            <div>
+                                @if (Model.AvailableRoles != null && Model.AvailableRoles.Any())
+                                {
+                                    foreach (var role in Model.AvailableRoles)
+                                    {
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@role" id="role_@role"
+                                            @(Model.SelectedRoles != null && Model.SelectedRoles.Contains(role) ? "checked" : "")>
+                                            <label class="form-check-label" for="role_@role">@role</label>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-muted small">Список ролей пуст. (Убедитесь, что контроллер передает AvailableRoles).</div>
+                                }
+                            </div>
+                        </div>
+
+                        <hr class="my-5" />
+
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-3">
+                            <a asp-action="Index" class="btn btn-light border px-4">Отмена</a>
+                            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">Создать учетную запись</button>
+                        </div>
+                    </form>
+
                 </div>
-            }
+            </div>
         </div>
     </div>
-
-    <div class="col-12 d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Создать</button>
-        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
-    </div>
-</form>
+</div>

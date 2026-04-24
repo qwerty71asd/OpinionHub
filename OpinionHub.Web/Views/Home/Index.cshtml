@@ -17,7 +17,7 @@
     {
         <div class="text-center py-5" id="no-polls-msg">
             <i class="bi bi-inboxes text-muted" style="font-size: 4rem;"></i>
-            <p class="text-secondary fs-4 mt-3">Пока нет ни одного активного опроса.<br/>Будьте первым!</p>
+            <p class="text-secondary fs-4 mt-3">Пока нет ни одного активного опроса.<br />Будьте первым!</p>
         </div>
     }
     else
@@ -25,9 +25,8 @@
         <div class="poll-masonry" id="poll-feed-container">
             @foreach (var poll in Model)
             {
-                /* ID перенесли прямо на карточку для SignalR */
                 <div class="card shadow-sm border-0 oh-card @(string.IsNullOrEmpty(poll.CoverImagePath) ? "border-top border-primary border-4" : "") overflow-hidden" id="poll-card-@poll.Id">
-                    
+
                     @if (!string.IsNullOrEmpty(poll.CoverImagePath))
                     {
                         <img src="@poll.CoverImagePath" class="card-img-top border-bottom border-primary border-4" style="height: 200px; object-fit: cover;" alt="Обложка">
@@ -59,19 +58,21 @@
 }
 
 <style>
-    /* Плиточная сетка Masonry */
     .poll-masonry {
         column-count: 1;
         column-gap: 1.5rem;
     }
 
-    /* Экранируем с помощью @@ для Razor */
     @@media (min-width: 768px) {
-        .poll-masonry { column-count: 2; }
+        .poll-masonry {
+            column-count: 2;
+        }
     }
 
     @@media (min-width: 992px) {
-        .poll-masonry { column-count: 3; }
+        .poll-masonry {
+            column-count: 3;
+        }
     }
 
     .poll-masonry .card {
@@ -81,13 +82,12 @@
         break-inside: avoid;
     }
 
-    /* Анимация карточек */
     .oh-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .oh-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    }
+        .oh-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
 </style>
