@@ -3,7 +3,7 @@
     ViewData["Title"] = "Главная";
 }
 
-<div class="container mt-5">
+<div class="container mt-5 pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="display-5 fw-bold">Активные опросы</h1>
         <a asp-controller="Polls" asp-action="Create" class="btn btn-primary btn-lg shadow-sm">
@@ -13,53 +13,45 @@
 
     <hr class="mb-5">
 
-    <div class="row g-4" id="poll-feed-container">
-        @if (!Model.Any())
-        {
-            <div class="col-12 text-center py-5" id="no-polls-msg">
-                <p class="text-secondary fs-4">Пока нет ни одного активного опроса. Будьте первым!</p>
-            </div>
-        }
-        else
-        {
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5" id="no-polls-msg">
+            <i class="bi bi-inboxes text-muted" style="font-size: 4rem;"></i>
+            <p class="text-secondary fs-4 mt-3">Пока нет ни одного активного опроса.<br/>Будьте первым!</p>
+        </div>
+    }
+    else
+    {
+        <div class="poll-masonry" id="poll-feed-container">
             @foreach (var poll in Model)
             {
-                /* Каждая карточка имеет уникальный ID для удаления через SignalR */
-                <div class="col-md-6 col-lg-4" id="poll-card-@poll.Id">
-                    <div class="card h-100 shadow-sm border-0 oh-card overflow-hidden">
+                /* ID перенесли прямо на карточку для SignalR */
+                <div class="card shadow-sm border-0 oh-card @(string.IsNullOrEmpty(poll.CoverImagePath) ? "border-top border-primary border-4" : "") overflow-hidden" id="poll-card-@poll.Id">
+                    
+                    @if (!string.IsNullOrEmpty(poll.CoverImagePath))
+                    {
+                        <img src="@poll.CoverImagePath" class="card-img-top border-bottom border-primary border-4" style="height: 200px; object-fit: cover;" alt="Обложка">
+                    }
 
-                        @if (!string.IsNullOrEmpty(poll.CoverImagePath))
-                        {
-                            <img src="@poll.CoverImagePath" class="card-img-top border-bottom border-primary border-4" style="height: 200px; object-fit: cover;" alt="Обложка">
-                        }
-                        else
-                        {
-                            <div class="card-img-top border-bottom border-primary border-4 d-flex flex-column align-items-center justify-content-center"
-                                 style="height: 200px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                                <i class="bi bi-ui-radios-grid" style="font-size: 3.5rem; color: #ced4da;"></i>
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h5 class="card-title fw-bold mb-3">@poll.Title</h5>
+
+                        <div class="mt-auto">
+                            <div class="d-flex align-items-center mb-3 text-secondary small">
+                                <i class="bi bi-person-circle me-2"></i>
+                                <span>Автор: @(poll.Author?.UserName ?? "Аноним")</span>
                             </div>
-                        }
 
-                        <div class="card-body p-4 d-flex flex-column">
-                            <h5 class="card-title fw-bold mb-3 text-truncate">@poll.Title</h5>
-
-                            <div class="mt-auto">
-                                <div class="d-flex align-items-center mb-3 text-secondary small">
-                                    <i class="bi bi-person-circle me-2"></i>
-                                    <span>Автор: @(poll.Author?.UserName ?? "Аноним")</span>
-                                </div>
-
-                                <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id"
-                                   class="btn btn-outline-primary w-100 fw-semibold">
-                                    Голосовать
-                                </a>
-                            </div>
+                            <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id"
+                               class="btn btn-outline-primary w-100 fw-semibold">
+                                Голосовать
+                            </a>
                         </div>
                     </div>
                 </div>
             }
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @section Scripts {
@@ -67,13 +59,35 @@
 }
 
 <style>
-    /* Небольшой бонус для красоты карточек */
+    /* Плиточная сетка Masonry */
+    .poll-masonry {
+        column-count: 1;
+        column-gap: 1.5rem;
+    }
+
+    /* Экранируем с помощью @@ для Razor */
+    @@media (min-width: 768px) {
+        .poll-masonry { column-count: 2; }
+    }
+
+    @@media (min-width: 992px) {
+        .poll-masonry { column-count: 3; }
+    }
+
+    .poll-masonry .card {
+        display: inline-block;
+        width: 100%;
+        margin-bottom: 1.5rem;
+        break-inside: avoid;
+    }
+
+    /* Анимация карточек */
     .oh-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-        .oh-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-        }
+    .oh-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
 </style>
