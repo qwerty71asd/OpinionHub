@@ -13,15 +13,17 @@ namespace OpinionHub.Web.Controllers;
 [Authorize]
 public class PollsController : Controller
 {
+    private readonly AiAnalyticsService _aiService;
     private readonly IPollService _pollService;
     private readonly IHubContext<PollHub> _hub;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager)
+    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService)
     {
         _pollService = pollService;
         _hub = hub;
         _userManager = userManager;
+        _aiService = aiService;
     }
 
     private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? returnUrl)
@@ -92,8 +94,18 @@ public class PollsController : Controller
         }
 
         var poll = await _pollService.GetPollDetailsAsync(id, viewerUserId);
-        if (poll is not null) return View(poll);
+
+        if (poll is not null)
+        {
+            // Вызываем ИИ только если опрос найден
+            // Данные для анализа подтянутся автоматически через poll.Votes и poll.Options
+            ViewBag.AiAnalysis = await _aiService.AnalyzePollResultsAsync(poll);
+
+            return View(poll);
+        }
+
         if (viewerUserId is null) return Challenge();
+
         return Forbid();
     }
 
@@ -208,7 +220,6 @@ public class PollsController : Controller
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "results.xlsx");
     }
     [HttpGet]
-    [HttpGet]
     public async Task<IActionResult> Profile()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -230,5 +241,17 @@ public class PollsController : Controller
 
         return View(viewModel);
     }
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAiAnalysis(Guid id)
+    {
+        // viewerUserId здесь не критичен для аналитики общих результатов
+        var poll = await _pollService.GetPollDetailsAsync(id, null);
 
+        if (poll == null) return NotFound();
+
+        var analysis = await _aiService.AnalyzePollResultsAsync(poll);
+
+        return Json(new { analysis });
+    }
 }

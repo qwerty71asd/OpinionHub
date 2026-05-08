@@ -65,6 +65,7 @@
     }
 
     <div class="row g-4">
+        @* Левая колонка: Голосование и управление *@
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm oh-card h-100 overflow-hidden">
                 @if (!string.IsNullOrEmpty(Model.CoverImagePath))
@@ -176,6 +177,7 @@
             </div>
         </div>
 
+        @* Правая колонка: Результаты и ИИ *@
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm oh-card h-100">
                 <div class="card-body p-4">
@@ -208,8 +210,31 @@
                         }
                     </div>
 
-                    <div class="oh-chart-wrap p-3 border rounded bg-light">
+                    <div class="oh-chart-wrap p-3 border rounded bg-light mb-4">
                         <canvas id="chart" height="150"></canvas>
+                    </div>
+
+                    @* Блок ИИ Аналитики *@
+                    <div class="ai-analytics-section border-top pt-4">
+                        <button id="btnAnalyze" class="btn btn-outline-primary d-flex align-items-center gap-2 py-2 px-4 shadow-sm transition" onclick="fetchAiAnalysis()">
+                            <i class="bi bi-robot"></i>
+                            <span id="btnText">Магический анализ результатов</span>
+                            <div id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                        </button>
+
+                        <div id="aiResultContainer" class="d-none mt-4">
+                            <div class="card oh-card border-0 shadow-sm" style="background: rgba(13, 110, 253, 0.05); border: 1px solid rgba(13, 110, 253, 0.1) !important;">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="brand-dot me-2"></div>
+                                        <h5 class="mb-0 fw-bold text-primary">Вердикт OpinionHub AI</h5>
+                                    </div>
+                                    <p id="aiResultText" class="mb-0 fs-5 lh-base text-body" style="font-style: italic;">
+                                        @* Текст прилетит через JS *@
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -225,5 +250,42 @@
             [@Html.Raw(string.Join(',', Model.Options.Select(o => $"'{o.Text.Replace("'", "\\'")}'")))],
             [@string.Join(',', Model.Options.Select(o => Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id))))]
         );
+
+        // Функция запроса аналитики по кнопке
+        async function fetchAiAnalysis() {
+            const btn = document.getElementById('btnAnalyze');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+            const container = document.getElementById('aiResultContainer');
+            const textPath = document.getElementById('aiResultText');
+
+            // Блокируем кнопку
+            btn.disabled = true;
+            btnText.innerText = "ИИ думает...";
+            spinner.classList.remove('d-none');
+
+            try {
+                // Вызываем новый экшен в контроллере
+                const response = await fetch(`/Polls/GetAiAnalysis?id=@Model.Id`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    textPath.innerText = `"${data.analysis}"`;
+                    container.classList.remove('d-none');
+                    // Плавная прокрутка к блоку
+                    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    alert("Ошибка: не удалось получить данные от ИИ.");
+                }
+            } catch (error) {
+                console.error("Ошибка аналитики:", error);
+                alert("Произошла ошибка при связи с сервером.");
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                btn.disabled = false;
+                btnText.innerText = "Обновить анализ";
+                spinner.classList.add('d-none');
+            }
+        }
     </script>
 }
