@@ -5,6 +5,7 @@ using OpinionHub.Web.Background;
 using OpinionHub.Web.Data;
 using OpinionHub.Web.Hubs;
 using OpinionHub.Web.Models;
+using System.Net;
 using OpinionHub.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,6 +58,32 @@ builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
+builder.Services.AddHttpClient<AiAnalyticsService>()
+    .ConfigurePrimaryHttpMessageHandler(sp =>
+    {
+        // Достаем настройки прокси из конфигурации (из твоего secrets.json)
+        var config = sp.GetRequiredService<IConfiguration>();
+
+        var proxyAddress = config["Proxy:Address"];
+        var proxyUser = config["Proxy:Username"];
+        var proxyPass = config["Proxy:Password"];
+
+        // Создаем объект прокси
+        var proxy = new WebProxy
+        {
+            Address = new Uri(proxyAddress),
+            BypassProxyOnLocal = false,
+            UseDefaultCredentials = false,
+            // Авторизация на твоем прокси
+            Credentials = new NetworkCredential(proxyUser, proxyPass)
+        };
+
+        return new HttpClientHandler
+        {
+            Proxy = proxy,
+            UseProxy = true
+        };
+    });
 
 var app = builder.Build();
 
