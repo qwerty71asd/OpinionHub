@@ -17,13 +17,15 @@ public class PollsController : Controller
     private readonly IPollService _pollService;
     private readonly IHubContext<PollHub> _hub;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ITelegramNotificationService _telegram;
 
-    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService)
+    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService, ITelegramNotificationService telegram)
     {
         _pollService = pollService;
         _hub = hub;
-        _userManager = userManager;
+        _userManager = userManager; 
         _aiService = aiService;
+        _telegram = telegram;
     }
 
     private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? returnUrl)
@@ -72,7 +74,18 @@ public class PollsController : Controller
                     author = User.Identity?.Name ?? "Аноним",
                     votesCount = 0
                 });
+                var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
+
+                // Если у тебя в модели Poll есть ссылка на картинку (например, poll.ImagePath), 
+                // передай её вместо null последним параметром
+                await _telegram.SendPollNotificationAsync(
+                    poll.Title,
+                    "Заходите проголосовать! Ваш голос очень важен.", // Заменили poll.Description на обычную строку
+                    pollUrl,
+                    null
+                );
             }
+           
             return RedirectToAction(nameof(Details), new { id = poll.Id });
         }
         catch (Exception ex)
@@ -164,6 +177,13 @@ public class PollsController : Controller
                 author = User.Identity?.Name ?? "Аноним",
                 votesCount = 0
             });
+            var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
+            await _telegram.SendPollNotificationAsync(
+                poll.Title,
+                "Заходите проголосовать! Ваш голос очень важен.", // Заменили poll.Description на обычную строку
+                pollUrl,
+                null
+            );
         }
         else
         {

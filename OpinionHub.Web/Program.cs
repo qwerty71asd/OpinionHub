@@ -7,6 +7,7 @@ using OpinionHub.Web.Hubs;
 using OpinionHub.Web.Models;
 using System.Net;
 using OpinionHub.Web.Services;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,10 +59,15 @@ builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
+var botToken = builder.Configuration["TelegramBot:Token"];
+if (!string.IsNullOrEmpty(botToken))
+{
+    builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken));
+    builder.Services.AddTransient<ITelegramNotificationService, TelegramNotificationService>();
+}
 builder.Services.AddHttpClient<AiAnalyticsService>()
     .ConfigurePrimaryHttpMessageHandler(sp =>
     {
-        // Достаем настройки прокси из конфигурации (из твоего secrets.json)
         var config = sp.GetRequiredService<IConfiguration>();
 
         var proxyAddress = config["Proxy:Address"];

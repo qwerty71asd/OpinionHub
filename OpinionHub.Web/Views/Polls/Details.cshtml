@@ -151,9 +151,24 @@
                             <a class="btn btn-outline-secondary flex-fill" asp-action="ExportXlsx" asp-route-id="@Model.Id">XLSX</a>
                         </div>
 
+                        <a href="https://t.me/share/url?url=@Url.Action("Details", "Polls", new { id = Model.Id }, Context.Request.Scheme)&text=@Uri.EscapeDataString("Проголосуй в опросе: " + Model.Title)"
+                           target="_blank"
+                           class="btn btn-outline-info w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-telegram"></i> Поделиться в Telegram
+                        </a>
+
                         <form asp-action="Delete" asp-controller="Polls" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Точно удаляем? Это действие необратимо.');">
                             <button type="submit" class="btn btn-outline-danger w-100">Удалить опрос</button>
                         </form>
+                    }
+                    else
+                    {
+                        <hr class="my-4" />
+                        <a href="https://t.me/share/url?url=@Url.Action("Details", "Polls", new { id = Model.Id }, Context.Request.Scheme)&text=@Uri.EscapeDataString("Проголосуй в опросе: " + Model.Title)"
+                           target="_blank"
+                           class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-telegram"></i> Поделиться в Telegram
+                        </a>
                     }
                 </div>
 
@@ -243,13 +258,16 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/poll-details.js"></script>
+    <script src="~/js/poll-details.js" asp-append-version="true"></script>
     <script>
-        initPollDetails(
-            '@Model.Id',
-            [@Html.Raw(string.Join(',', Model.Options.Select(o => $"'{o.Text.Replace("'", "\\'")}'")))],
-            [@string.Join(',', Model.Options.Select(o => Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id))))]
-        );
+        document.addEventListener("DOMContentLoaded", function () {
+            // Безопасная сериализация данных из C# в JavaScript
+            const pollId = '@Model.Id';
+            const labels = @Html.Raw(Json.Serialize(Model.Options.Select(o => o.Text)));
+            const data = @Html.Raw(Json.Serialize(Model.Options.Select(o => Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)))));
+
+            initPollDetails(pollId, labels, data);
+        });
 
         // Функция запроса аналитики по кнопке
         async function fetchAiAnalysis() {
