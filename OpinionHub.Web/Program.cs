@@ -74,15 +74,25 @@ builder.Services.AddHttpClient<AiAnalyticsService>()
         var proxyUser = config["Proxy:Username"];
         var proxyPass = config["Proxy:Password"];
 
-        // Создаем объект прокси
+        // 1. ЗАЩИТА ОТ КРАША: Если прокси не указан, работаем напрямую
+        if (string.IsNullOrEmpty(proxyAddress))
+        {
+            return new HttpClientHandler { UseProxy = false };
+        }
+
+        // 2. Создаем объект прокси только если адрес существует
         var proxy = new WebProxy
         {
             Address = new Uri(proxyAddress),
             BypassProxyOnLocal = false,
             UseDefaultCredentials = false,
-            // Авторизация на твоем прокси
-            Credentials = new NetworkCredential(proxyUser, proxyPass)
         };
+
+        // 3. Добавляем авторизацию, только если логин/пароль реально заданы
+        if (!string.IsNullOrEmpty(proxyUser) && !string.IsNullOrEmpty(proxyPass))
+        {
+            proxy.Credentials = new NetworkCredential(proxyUser, proxyPass);
+        }
 
         return new HttpClientHandler
         {
@@ -90,7 +100,6 @@ builder.Services.AddHttpClient<AiAnalyticsService>()
             UseProxy = true
         };
     });
-
 var app = builder.Build();
 
 await DbInitializer.InitializeAsync(app.Services, app.Logger, app.Configuration, app.Environment);

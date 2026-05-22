@@ -110,13 +110,9 @@ public class PollsController : Controller
 
         if (poll is not null)
         {
-            // Вызываем ИИ только если опрос найден
-            // Данные для анализа подтянутся автоматически через poll.Votes и poll.Options
-            ViewBag.AiAnalysis = await _aiService.AnalyzePollResultsAsync(poll);
-
+            // Просто возвращаем View. ИИ будет вызван только если юзер нажмет кнопку на странице.
             return View(poll);
         }
-
         if (viewerUserId is null) return Challenge();
 
         return Forbid();
