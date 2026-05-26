@@ -75,6 +75,7 @@ function initPollDetails(pollId, labels, initialData) {
     const initialType = savedType || 'bar';
     applyActiveTab(initialType);
     chart = createChart(initialType, labels, initialData);
+    let currentChartType = initialType;
 
     // Обработчики вкладок
     const tabBar = document.getElementById('tab-bar');
@@ -82,6 +83,8 @@ function initPollDetails(pollId, labels, initialData) {
 
     function onTabClick(e) {
         const type = e.currentTarget.getAttribute('data-chart');
+        if (type === currentChartType) return; // если клик по уже активной вкладке — ничего не делаем
+        currentChartType = type;
         try { localStorage.setItem(storageKey, type); } catch { }
         applyActiveTab(type);
         const currentData = chart && chart.data && chart.data.datasets && chart.data.datasets[0] ? chart.data.datasets[0].data : initialData;
