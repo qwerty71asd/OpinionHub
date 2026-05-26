@@ -1,0 +1,19 @@
+/* Контейнер диаграммы (Details) — относительная адаптивная высота */
+.oh-chart-wrap {
+    height: 40vh;
+    min-height: 260px;
+    max-height: 55vh;
+    padding: 14px; /* сохраняем отступ */
+}
+
+/* Мобильные */
+@media (max-width: 576px) {
+    .oh-chart-wrap { height: 45vh; min-height: 220px; }
+}
+
+/* Canvas занимает весь контейнер */
+#chart {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}

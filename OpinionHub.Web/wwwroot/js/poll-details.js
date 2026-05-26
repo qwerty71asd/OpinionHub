@@ -31,11 +31,14 @@ function initPollDetails(pollId, labels, initialData) {
                     datasets: [{
                         data: dataArr,
                         backgroundColor: palette.slice(0, labelsArr.length),
-                        hoverOffset: 8
+                        hoverOffset: 8,
+                        borderColor: 'transparent',
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     animation: { duration: 600, easing: 'easeOutCubic' },
                     plugins: { legend: { position: 'bottom' } }
                 }
@@ -54,6 +57,7 @@ function initPollDetails(pollId, labels, initialData) {
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     animation: { duration: 600, easing: 'easeOutCubic' },
                     scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
                     plugins: { legend: { display: false } }
