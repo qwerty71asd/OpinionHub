@@ -225,8 +225,19 @@
                         }
                     </div>
 
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <ul class="nav nav-pills" id="chartTypeTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="tab-bar" data-chart="bar" type="button">Столбчатая</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-pie" data-chart="pie" type="button">Круговая</button>
+                            </li>
+                        </ul>
+                    </div>
+
                     <div class="oh-chart-wrap p-3 border rounded bg-light mb-4">
-                        <canvas id="chart" height="150"></canvas>
+                        <canvas id="chart"></canvas>
                     </div>
 
                     @* Блок ИИ Аналитики *@
