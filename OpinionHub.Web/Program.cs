@@ -55,7 +55,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<IValidationAttributeAdapterProvider, RuValidationAttributeAdapterProvider>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
@@ -64,6 +69,16 @@ if (!string.IsNullOrEmpty(botToken))
 {
     builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken));
     builder.Services.AddTransient<ITelegramNotificationService, TelegramNotificationService>();
+    builder.Services.AddSingleton<ITelegramLinkTokenService, TelegramLinkTokenService>();
+    builder.Services.AddScoped<ITelegramUpdateHandler, TelegramUpdateHandler>();
+
+    // Режим работы бота: "polling" (по умолчанию, работает локально без публичного URL)
+    // или "webhook" (используется TelegramWebhookController, polling не запускается).
+    var mode = builder.Configuration["TelegramBot:Mode"] ?? "polling";
+    if (mode.Equals("polling", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Services.AddHostedService<TelegramBotPollingHostedService>();
+    }
 }
 builder.Services.AddHttpClient<AiAnalyticsService>()
     .ConfigurePrimaryHttpMessageHandler(sp =>

@@ -1,5 +1,6 @@
 @using System.Security.Claims
 @using OpinionHub.Web.Models
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @model OpinionHub.Web.Models.Poll
 @{
     ViewData["Title"] = Model.Title;
@@ -9,6 +10,21 @@
     var isEmailConfirmed = (ViewBag.IsEmailConfirmed as bool?) ?? false;
     var returnUrl = Url.Action("Details", "Polls", new { id = Model.Id });
     var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var likeCount = (ViewBag.LikeCount as int?) ?? 0;
+    var isLiked = (ViewBag.IsLiked as bool?) ?? false;
+    var canLike = User.Identity?.IsAuthenticated == true;
+    var afTokens = Antiforgery.GetAndStoreTokens(Context);
+    var comments = (ViewBag.Comments as IReadOnlyList<OpinionHub.Web.ViewModels.CommentNodeViewModel>) ?? Array.Empty<OpinionHub.Web.ViewModels.CommentNodeViewModel>();
+    var totalCommentsCount = CountCommentsRecursively(comments);
+}
+
+@functions {
+    int CountCommentsRecursively(IEnumerable<OpinionHub.Web.ViewModels.CommentNodeViewModel> nodes)
+    {
+        var n = 0;
+        foreach (var c in nodes) { n++; n += CountCommentsRecursively(c.Replies); }
+        return n;
+    }
 }
 
 <div class="oh-hero py-4 py-md-5 mb-4">
@@ -47,7 +63,28 @@
                 </div>
             </div>
 
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                @if (canLike)
+                {
+                    <button id="poll-like-btn"
+                            type="button"
+                            class="btn @(isLiked ? "btn-danger" : "btn-outline-danger") d-inline-flex align-items-center gap-2"
+                            data-poll-id="@Model.Id"
+                            data-liked="@(isLiked ? "true" : "false")"
+                            aria-pressed="@(isLiked ? "true" : "false")"
+                            title="@(isLiked ? "Снять лайк" : "Поставить лайк")">
+                        <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")"></i>
+                        <span id="poll-like-count">@likeCount</span>
+                    </button>
+                }
+                else
+                {
+                    <span class="btn btn-outline-secondary disabled d-inline-flex align-items-center gap-2" title="Войдите, чтобы поставить лайк">
+                        <i class="bi bi-heart"></i>
+                        <span>@likeCount</span>
+                    </span>
+                }
+
                 <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">← В ленту</a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -266,10 +303,104 @@
             </div>
         </div>
     </div>
+
+    @* Комментарии *@
+    <div class="row mt-4">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold mb-4">
+                        <i class="bi bi-chat-left-text me-2"></i>
+                        Комментарии <span class="text-secondary" id="comments-total">(@totalCommentsCount)</span>
+                    </h2>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        var myName = User.Identity.Name ?? "";
+                        var myInitial = myName.Length > 0 ? myName[0].ToString().ToUpper() : "?";
+                        <form id="comment-root-form" class="oh-composer mb-4" data-attach-scope="root">
+                            <div class="oh-composer-avatar">@myInitial</div>
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="oh-composer-pill">
+                                    <textarea class="oh-composer-input"
+                                              name="text"
+                                              rows="1"
+                                              maxlength="2000"
+                                              placeholder="Напишите комментарий..."></textarea>
+                                    <input type="file"
+                                           class="oh-composer-file d-none"
+                                           accept="image/jpeg,image/png,image/webp,image/gif" />
+                                    <button type="button"
+                                            class="oh-composer-icon-btn oh-composer-attach"
+                                            title="Прикрепить фото (только одно)"
+                                            aria-label="Прикрепить фото">
+                                        <i class="bi bi-paperclip"></i>
+                                    </button>
+                                    <button type="submit"
+                                            class="btn btn-primary oh-composer-send"
+                                            title="Отправить"
+                                            aria-label="Отправить">
+                                        <i class="bi bi-send-fill"></i>
+                                    </button>
+                                </div>
+                                <div class="oh-composer-preview d-none">
+                                    <img alt="Превью" />
+                                    <div class="meta">
+                                        <span class="filename"></span>
+                                        <span class="hint">Только одно фото · до 5 МБ</span>
+                                    </div>
+                                    <button type="button" class="remove-btn" title="Убрать" aria-label="Убрать вложение">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-light border mb-4">
+                            <a asp-area="Identity" asp-page="/Account/Login">Войдите</a>, чтобы оставить комментарий.
+                        </div>
+                    }
+
+                    <div id="comments-list">
+                        @if (comments.Count == 0)
+                        {
+                            <div id="comments-empty" class="text-center py-4 text-secondary">
+                                Пока нет ни одного комментария. Будьте первым!
+                            </div>
+                        }
+                        else
+                        {
+                            foreach (var node in comments)
+                            {
+                                @await Html.PartialAsync("_Comment", node, new ViewDataDictionary(ViewData) { ["Depth"] = 0 })
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Lightbox — модалка для просмотра вложения комментария во весь экран *@
+<div class="modal fade" id="comment-image-modal" tabindex="-1" aria-hidden="true" aria-labelledby="comment-image-modal-label">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                    data-bs-dismiss="modal" aria-label="Закрыть" style="z-index:2;"></button>
+            <img src="" alt="Вложение" id="comment-image-modal-label"
+                 class="img-fluid rounded shadow-lg mx-auto d-block"
+                 style="max-height: 90vh; object-fit: contain; background: rgba(0,0,0,0.2);" />
+        </div>
+    </div>
 </div>
 
 @section Scripts {
+    <input type="hidden" id="af-token" value="@afTokens.RequestToken" />
     <script src="~/js/poll-details.js" asp-append-version="true"></script>
+    <script src="~/js/poll-comments.js" asp-append-version="true"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Безопасная сериализация данных из C# в JavaScript
@@ -278,6 +409,55 @@
             const data = @Html.Raw(Json.Serialize(Model.Options.Select(o => Model.Votes.Count(v => v.Selections.Any(s => s.PollOptionId == o.Id)))));
 
             initPollDetails(pollId, labels, data);
+            if (typeof initPollComments === 'function') initPollComments(pollId);
+
+            // === Лайк опроса ===
+            const likeBtn = document.getElementById('poll-like-btn');
+            if (likeBtn) {
+                const tokenEl = document.getElementById('af-token');
+                const countEl = document.getElementById('poll-like-count');
+                const iconEl = likeBtn.querySelector('i');
+                const url = '/api/likes/polls/' + likeBtn.dataset.pollId;
+
+                likeBtn.addEventListener('click', async function () {
+                    const liked = likeBtn.dataset.liked === 'true';
+                    likeBtn.disabled = true;
+                    try {
+                        const resp = await fetch(url, {
+                            method: liked ? 'DELETE' : 'POST',
+                            headers: {
+                                'RequestVerificationToken': tokenEl.value,
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'same-origin'
+                        });
+                        if (!resp.ok) {
+                            console.error('Like error:', resp.status, await resp.text());
+                            return;
+                        }
+                        const payload = await resp.json();
+                        likeBtn.dataset.liked = payload.liked ? 'true' : 'false';
+                        likeBtn.setAttribute('aria-pressed', payload.liked ? 'true' : 'false');
+                        likeBtn.title = payload.liked ? 'Снять лайк' : 'Поставить лайк';
+                        countEl.textContent = payload.count;
+                        if (payload.liked) {
+                            likeBtn.classList.remove('btn-outline-danger');
+                            likeBtn.classList.add('btn-danger');
+                            iconEl.classList.remove('bi-heart');
+                            iconEl.classList.add('bi-heart-fill');
+                        } else {
+                            likeBtn.classList.remove('btn-danger');
+                            likeBtn.classList.add('btn-outline-danger');
+                            iconEl.classList.remove('bi-heart-fill');
+                            iconEl.classList.add('bi-heart');
+                        }
+                    } catch (err) {
+                        console.error('Like network error:', err);
+                    } finally {
+                        likeBtn.disabled = false;
+                    }
+                });
+            }
         });
 
         // Функция запроса аналитики по кнопке

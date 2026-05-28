@@ -1,0 +1,75 @@
+@model OpinionHub.Web.ViewModels.TelegramLinkViewModel
+@{
+    ViewData["Title"] = "Привязка Telegram";
+}
+
+<div class="container py-5" style="max-width:720px;">
+    <h1 class="h3 fw-bold mb-3">
+        <i class="bi bi-telegram text-primary me-2"></i>Привязка Telegram
+    </h1>
+    <p class="text-secondary">
+        Когда кто-то, на кого вы подписаны, опубликует новый опрос — мы пришлём вам сообщение в Telegram.
+    </p>
+
+    @if (TempData["TelegramMessage"] is string msg)
+    {
+        <div class="alert alert-success">@msg</div>
+    }
+
+    @if (Model.ConfigError is not null)
+    {
+        <div class="alert alert-warning">@Model.ConfigError</div>
+    }
+    else if (Model.IsLinked)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="badge bg-success-subtle text-success px-3 py-2">
+                        <i class="bi bi-check-circle me-1"></i>Привязано
+                    </span>
+                    <span class="text-secondary small">Chat ID: <code>@Model.TelegramChatId</code></span>
+                </div>
+                <p class="mb-4">
+                    Ваш Telegram-аккаунт подключён. Вы получаете уведомления о новых опросах от авторов, на которых подписаны.
+                </p>
+                <form asp-action="Unlink" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-link-45deg me-1"></i>Отвязать
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h5 fw-bold mb-3">Как привязать</h2>
+                <ol class="mb-4">
+                    <li class="mb-2">Нажмите на кнопку ниже — Telegram откроется на чате с ботом.</li>
+                    <li class="mb-2">В чате нажмите <strong>«Запустить» / «Start»</strong>. Бот сразу подтвердит привязку.</li>
+                    <li class="mb-0">Готово — закройте эту страницу и обновите её, чтобы увидеть статус «Привязано».</li>
+                </ol>
+
+                <a href="@Model.DeepLink" target="_blank" rel="noopener" class="btn btn-primary btn-lg d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-telegram"></i>
+                    Открыть Telegram и привязать
+                </a>
+
+                <hr class="my-4" />
+
+                <div class="small text-secondary">
+                    <div class="mb-2">
+                        Если ссылка не открылась, скопируйте и вставьте её в браузер вручную:
+                    </div>
+                    <code class="d-block p-2 bg-body-tertiary rounded text-break">@Model.DeepLink</code>
+                </div>
+
+                <div class="form-text mt-3">
+                    Ссылка действует @Math.Round(Model.TokenLifetime.TotalMinutes) минут. После истечения откройте страницу заново.
+                </div>
+            </div>
+        </div>
+    }
+</div>

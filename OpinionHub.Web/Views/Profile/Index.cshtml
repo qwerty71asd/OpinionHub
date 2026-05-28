@@ -1,0 +1,209 @@
+@model OpinionHub.Web.ViewModels.ProfilePublicViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = $"Профиль {Model.UserName}";
+    var afTokens = Antiforgery.GetAndStoreTokens(Context);
+    var encodedUserName = Uri.EscapeDataString(Model.UserName);
+}
+
+<div class="container mt-5">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8 d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                 style="width:64px;height:64px;font-size:28px;font-weight:600;">
+                @(Model.UserName.Length > 0 ? Model.UserName[0].ToString().ToUpper() : "?")
+            </div>
+            <div>
+                <h1 class="h3 fw-bold mb-1">@Model.UserName</h1>
+                <div class="text-secondary small">
+                    <i class="bi bi-people me-1"></i>
+                    <span id="subscribers-count">@Model.SubscribersCount</span>
+                    <span>подписчиков</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            @if (Model.IsOwnProfile)
+            {
+                <span class="badge bg-secondary-subtle text-secondary px-3 py-2">Это ваш профиль</span>
+            }
+            else if (!Model.IsViewerAuthenticated)
+            {
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-sm">
+                    Войти, чтобы подписаться
+                </a>
+            }
+            else
+            {
+                <button id="subscribe-btn"
+                        type="button"
+                        class="btn @(Model.IsSubscribed ? "btn-outline-primary" : "btn-primary")"
+                        data-username="@Model.UserName"
+                        data-subscribed="@(Model.IsSubscribed ? "true" : "false")">
+                    <i class="bi @(Model.IsSubscribed ? "bi-person-dash" : "bi-person-plus") me-1"></i>
+                    <span class="subscribe-label">@(Model.IsSubscribed ? "Отписаться" : "Подписаться")</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <ul class="nav nav-pills mb-4 gap-2" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active shadow-sm" data-bs-toggle="pill" data-bs-target="#tab-polls" type="button" role="tab">
+                <i class="bi bi-list-check me-2"></i>Опросы (@Model.Polls.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link shadow-sm" data-bs-toggle="pill" data-bs-target="#tab-voted" type="button" role="tab">
+                <i class="bi bi-pie-chart me-2"></i>Участвовал(а) (@Model.VotedPolls.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-2">
+        <div class="tab-pane fade show active" id="tab-polls" role="tabpanel">
+            @if (!Model.Polls.Any())
+            {
+                <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                    <p class="text-secondary mb-0">У пользователя пока нет опросов.</p>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var poll in Model.Polls)
+                    {
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm @(poll.IsDeleted ? "opacity-75" : "")">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <div class="me-2" style="min-width:0;">
+                                        <h6 class="mb-1 text-truncate">@poll.Title</h6>
+                                        <div class="d-flex gap-2 flex-wrap small">
+                                            <span class="badge rounded-pill @(poll.Status == PollStatus.Active ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning")">
+                                                @poll.Status
+                                            </span>
+                                            @if (poll.IsDeleted)
+                                            {
+                                                <span class="badge rounded-pill bg-danger-subtle text-danger" title="Опрос удалён автором">
+                                                    <i class="bi bi-trash me-1"></i>Удалён
+                                                </span>
+                                            }
+                                            <span class="text-secondary">@poll.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                        </div>
+                                    </div>
+                                    <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-link text-decoration-none flex-shrink-0">
+                                        Открыть →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="tab-voted" role="tabpanel">
+            @if (!Model.VotedPolls.Any())
+            {
+                <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                    <p class="text-secondary mb-0">Пользователь ещё не участвовал в голосованиях.</p>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var poll in Model.VotedPolls)
+                    {
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4 @(poll.IsDeleted ? "opacity-75" : "")">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <div class="me-2" style="min-width:0;">
+                                        <h6 class="mb-1 text-truncate">@poll.Title</h6>
+                                        <div class="small text-secondary">
+                                            Автор: @(poll.Author?.UserName ?? "Аноним")
+                                            @if (poll.IsDeleted)
+                                            {
+                                                <span class="badge rounded-pill bg-danger-subtle text-danger ms-2">
+                                                    <i class="bi bi-trash me-1"></i>Удалён
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-link text-decoration-none flex-shrink-0">
+                                        Результаты →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (!Model.IsOwnProfile && Model.IsViewerAuthenticated)
+{
+    <input type="hidden" id="af-token" value="@afTokens.RequestToken" />
+
+    @section Scripts {
+        <script>
+            (function () {
+                const btn = document.getElementById('subscribe-btn');
+                if (!btn) return;
+
+                const tokenEl = document.getElementById('af-token');
+                const counterEl = document.getElementById('subscribers-count');
+                const labelEl = btn.querySelector('.subscribe-label');
+                const iconEl = btn.querySelector('i');
+                const targetUser = btn.dataset.username;
+                const url = '/api/subscriptions/' + encodeURIComponent(targetUser);
+
+                btn.addEventListener('click', async function () {
+                    const isSubscribed = btn.dataset.subscribed === 'true';
+                    btn.disabled = true;
+
+                    try {
+                        const resp = await fetch(url, {
+                            method: isSubscribed ? 'DELETE' : 'POST',
+                            headers: {
+                                'RequestVerificationToken': tokenEl.value,
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'same-origin'
+                        });
+                        if (!resp.ok) {
+                            const text = await resp.text();
+                            console.error('Subscribe error:', resp.status, text);
+                            return;
+                        }
+                        const data = await resp.json();
+
+                        btn.dataset.subscribed = data.isSubscribed ? 'true' : 'false';
+                        if (data.isSubscribed) {
+                            btn.classList.remove('btn-primary');
+                            btn.classList.add('btn-outline-primary');
+                            labelEl.textContent = 'Отписаться';
+                            iconEl.classList.remove('bi-person-plus');
+                            iconEl.classList.add('bi-person-dash');
+                        } else {
+                            btn.classList.remove('btn-outline-primary');
+                            btn.classList.add('btn-primary');
+                            labelEl.textContent = 'Подписаться';
+                            iconEl.classList.remove('bi-person-dash');
+                            iconEl.classList.add('bi-person-plus');
+                        }
+                        if (typeof data.subscribersCount === 'number') {
+                            counterEl.textContent = data.subscribersCount;
+                        }
+                    } catch (err) {
+                        console.error('Subscribe network error:', err);
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+            })();
+        </script>
+    }
+}

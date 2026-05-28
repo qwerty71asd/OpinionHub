@@ -12,13 +12,21 @@ public class PollService : IPollService
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PollService> _logger;
-    private readonly IFileStorageService _fileStorage; // Добавляем сервис хранилища
+    private readonly IFileStorageService _fileStorage;
+    private readonly ITelegramNotificationService? _telegram;
 
-    public PollService(ApplicationDbContext db, ILogger<PollService> logger, IFileStorageService fileStorage)
+    public PollService(
+        ApplicationDbContext db,
+        ILogger<PollService> logger,
+        IFileStorageService fileStorage,
+        ITelegramNotificationService? telegram = null)
     {
         _db = db;
         _logger = logger;
         _fileStorage = fileStorage;
+        // ITelegramNotificationService регистрируется только если задан TelegramBot:Token —
+        // в окружении без бота PollService должен продолжать работать без рассылки.
+        _telegram = telegram;
     }
 
     public async Task<Poll> CreateDraftAsync(CreatePollViewModel model, string authorId)
@@ -105,6 +113,11 @@ public class PollService : IPollService
         _db.AuditLogs.Add(new AuditLog { EventType = "POLL_CREATED", PollId = poll.Id, UserId = authorId, Details = poll.Title });
 
         await _db.SaveChangesAsync();
+
+        // Сразу опубликованный опрос — единственная развилка в этом методе, где опрос становится Active.
+        if (poll.Status == PollStatus.Active && _telegram is not null)
+            await _telegram.NotifySubscribersOfNewPollAsync(poll.Id);
+
         return poll;
     }
 
@@ -115,6 +128,9 @@ public class PollService : IPollService
         if (poll.Status != PollStatus.Draft) throw new InvalidOperationException("Публикуются только черновики.");
         poll.Status = PollStatus.Active;
         await _db.SaveChangesAsync();
+
+        if (_telegram is not null)
+            await _telegram.NotifySubscribersOfNewPollAsync(poll.Id);
     }
 
     public async Task VoteAsync(Guid pollId, string userId, IReadOnlyCollection<Guid> optionIds)
@@ -204,9 +220,11 @@ public class PollService : IPollService
 
     public async Task<IReadOnlyCollection<Poll>> GetFeedAsync(string? viewerUserId)
     {
+        // В ленту НЕ попадают soft-удалённые. Профиль автора и история голосований
+        // умышленно показывают их и дальше — фильтр живёт только здесь.
         var q = _db.Polls
             .Include(p => p.Options)
-            .AsQueryable();
+            .Where(p => !p.IsDeleted);
 
         if (string.IsNullOrWhiteSpace(viewerUserId))
         {
@@ -330,9 +348,13 @@ public class PollService : IPollService
         if (poll.AuthorId != userId)
             throw new UnauthorizedAccessException("Удалять опросы может только создатель.");
 
-        _db.Polls.Remove(poll);
+        if (poll.IsDeleted)
+            return;
 
-        // Оставляем след в истории, что опрос был удален
+        // Soft delete: не выпиливаем строку, чтобы не сломать ссылки из голосов/комментариев
+        // и сохранить опрос в профиле автора и истории голосовавших.
+        poll.IsDeleted = true;
+
         _db.AuditLogs.Add(new AuditLog
         {
             EventType = "POLL_DELETED",
@@ -351,11 +373,17 @@ public class PollService : IPollService
             .ToListAsync();
     }
 
-    public async Task<List<Poll>> GetVotedPollsAsync(string userId)
+    public async Task<List<Poll>> GetVotedPollsAsync(string userId, bool includeAnonymous = true)
     {
-        return await _db.Polls
+        var q = _db.Polls
             .Include(p => p.Author)
-            .Where(p => p.Votes.Any(v => v.VoterAccountId == userId))
+            .Where(p => p.Votes.Any(v => v.VoterAccountId == userId));
+
+        // Анонимный опрос НЕ должен раскрывать участие, поэтому в чужом публичном профиле прячем.
+        if (!includeAnonymous)
+            q = q.Where(p => p.VisibilityType != VisibilityType.Anonymous);
+
+        return await q
             .OrderByDescending(p => p.CreatedAtUtc)
             .ToListAsync();
     }

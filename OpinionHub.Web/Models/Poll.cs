@@ -30,4 +30,8 @@ public class Poll
     public ICollection<PollAllowedUser> AllowedUsers { get; set; } = new List<PollAllowedUser>();
     public string? CoverImagePath { get; set; }
     public ICollection<PollAttachment> Attachments { get; set; } = new List<PollAttachment>();
+
+    // Soft delete: опрос остаётся в БД (профиль автора, история голосований видят его),
+    // но скрыт из общей ленты. Физическое удаление не выполняется.
+    public bool IsDeleted { get; set; }
 }

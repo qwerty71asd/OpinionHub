@@ -23,6 +23,22 @@ function initPollDetails(pollId, labels, initialData) {
             try { chart.destroy(); } catch (e) { }
         }
 
+        // Единая конфигурация анимаций. easeOutQuart мягче чем cubic — нет "рывка" в конце.
+        // animations.numbers — анимирует числовые значения (длина бара, угол сектора) с тем же темпом.
+        const smoothAnimation = {
+            animation: {
+                duration: 900,
+                easing: 'easeOutQuart'
+            },
+            animations: {
+                numbers: { duration: 900, easing: 'easeOutQuart' },
+                colors: { duration: 300, easing: 'linear' }
+            },
+            transitions: {
+                active: { animation: { duration: 200 } }
+            }
+        };
+
         if (type === 'pie') {
             chart = new Chart(canvas, {
                 type: 'pie',
@@ -39,7 +55,7 @@ function initPollDetails(pollId, labels, initialData) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 600, easing: 'easeOutCubic' },
+                    ...smoothAnimation,
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
@@ -58,7 +74,7 @@ function initPollDetails(pollId, labels, initialData) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 600, easing: 'easeOutCubic' },
+                    ...smoothAnimation,
                     scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
                     plugins: { legend: { display: false } }
                 }
@@ -115,13 +131,15 @@ function initPollDetails(pollId, labels, initialData) {
             newChartData.push(item.count);
         });
 
-        // Обновляем Chart.js с анимацией
+        // Обновляем Chart.js. В v4 chart.update(mode) принимает строку режима, а не объект —
+        // настройки анимации читаются из options.animation, которую мы выставили при createChart.
+        // Раньше мы передавали объект, который игнорировался, и анимация шла дефолтная (короткая).
         if (chart) {
             chart.data.datasets[0].data = newChartData;
             if (chart.config && chart.config.type === 'pie') {
                 chart.data.datasets[0].backgroundColor = palette.slice(0, newChartData.length);
             }
-            chart.update({ duration: 600, easing: 'easeOutCubic' });
+            chart.update();
         }
     });
 

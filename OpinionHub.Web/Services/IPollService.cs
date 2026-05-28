@@ -16,5 +16,10 @@ public interface IPollService
     Task<int> ArchiveOldPollsAsync(int archiveAfterDays);
     Task DeleteAsync(Guid pollId, string userId);
     Task<List<Poll>> GetUserPollsAsync(string userId);
-    Task<List<Poll>> GetVotedPollsAsync(string userId);
+    /// <summary>
+    /// Опросы, в которых пользователь голосовал. Для собственного профиля передавать
+    /// <paramref name="includeAnonymous"/> = true; для публичного профиля чужого
+    /// пользователя — false, иначе раскрывается участие в анонимных опросах.
+    /// </summary>
+    Task<List<Poll>> GetVotedPollsAsync(string userId, bool includeAnonymous = true);
 }

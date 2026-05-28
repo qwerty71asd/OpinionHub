@@ -18,14 +18,18 @@ public class PollsController : Controller
     private readonly IHubContext<PollHub> _hub;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITelegramNotificationService _telegram;
+    private readonly ILikeService _likes;
+    private readonly ICommentService _comments;
 
-    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService, ITelegramNotificationService telegram)
+    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService, ITelegramNotificationService telegram, ILikeService likes, ICommentService comments)
     {
         _pollService = pollService;
         _hub = hub;
-        _userManager = userManager; 
+        _userManager = userManager;
         _aiService = aiService;
         _telegram = telegram;
+        _likes = likes;
+        _comments = comments;
     }
 
     private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? returnUrl)
@@ -110,6 +114,9 @@ public class PollsController : Controller
 
         if (poll is not null)
         {
+            ViewBag.LikeCount = await _likes.GetPollLikesCountAsync(poll.Id);
+            ViewBag.IsLiked = viewerUserId is not null && await _likes.IsPollLikedAsync(viewerUserId, poll.Id);
+            ViewBag.Comments = await _comments.GetCommentsTreeAsync(poll.Id, viewerUserId);
             // Просто возвращаем View. ИИ будет вызван только если юзер нажмет кнопку на странице.
             return View(poll);
         }
