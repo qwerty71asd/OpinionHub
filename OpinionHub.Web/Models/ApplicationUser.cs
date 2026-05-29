@@ -7,6 +7,22 @@ public class ApplicationUser : IdentityUser
     [PersonalData]
     public string? TelegramChatId { get; set; }
 
+    /// <summary>Относительный путь к аватарке вида /uploads/avatars/&lt;guid&gt;.jpg. null — fallback на букву.</summary>
+    [PersonalData]
+    public string? AvatarPath { get; set; }
+
+    /// <summary>Описание профиля (bio), plain text, до 500 символов.</summary>
+    [PersonalData]
+    public string? Bio { get; set; }
+
+    /// <summary>Показывать чужим лайкнутые опросы. Default false — приватность по умолчанию.</summary>
+    [PersonalData]
+    public bool ShowLikedPolls { get; set; } = false;
+
+    /// <summary>Показывать чужим список опросов, в которых пользователь голосовал. Default false.</summary>
+    [PersonalData]
+    public bool ShowVotedPolls { get; set; } = false;
+
     /// <summary>
     /// Получать ли в Telegram уведомления об **анонимных** опросах от тех, на кого подписан.
     /// По умолчанию false — на анонимные опросы рассылка не идёт. Управляется на странице

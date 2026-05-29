@@ -5,4 +5,4 @@ namespace OpinionHub.Web.ViewModels;
 /// Используется из Home/Index, Polls/Details, Profile/Index — везде, где раньше
 /// выводилось имя автора как текст.
 /// </summary>
-public record PollAuthorLinkViewModel(bool IsAnonymous, string? UserName);
+public record PollAuthorLinkViewModel(bool IsAnonymous, string? UserName, string? AvatarPath = null);

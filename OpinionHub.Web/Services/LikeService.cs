@@ -21,6 +21,37 @@ public class LikeService : ILikeService
     public Task<bool> IsPollLikedAsync(string userId, Guid pollId) =>
         _db.PollLikes.AnyAsync(pl => pl.UserId == userId && pl.PollId == pollId);
 
+    public async Task<List<Poll>> GetLikedPollsAsync(string userId)
+    {
+        // Два запроса вместо одного, чтобы обойти ограничение EF Core 8:
+        // Include нельзя ставить после Select — IIncludableQueryable теряется на проекции.
+        var likes = await _db.PollLikes
+            .Where(pl => pl.UserId == userId)
+            .OrderByDescending(pl => pl.CreatedAtUtc)
+            .Select(pl => new { pl.PollId, pl.CreatedAtUtc })
+            .ToListAsync();
+
+        if (likes.Count == 0) return new List<Poll>();
+
+        var ids = likes.Select(l => l.PollId).ToList();
+
+        var polls = await _db.Polls
+            .Where(p => ids.Contains(p.Id)
+                && !p.IsDeleted
+                && !p.IsAnonymousAuthor
+                && p.VisibilityType == VisibilityType.Public
+                && p.Status != PollStatus.Draft)
+            .Include(p => p.Author)
+            .ToListAsync();
+
+        // IN-запрос порядок не сохраняет — восстанавливаем «свежие лайки первыми» через словарь.
+        var byId = polls.ToDictionary(p => p.Id);
+        return likes
+            .Where(l => byId.ContainsKey(l.PollId))
+            .Select(l => byId[l.PollId])
+            .ToList();
+    }
+
     public async Task<string> LikePollAsync(string userId, Guid pollId)
     {
         // Один запрос вместо двух: достаём AuthorId и проверяем существование/soft-delete.

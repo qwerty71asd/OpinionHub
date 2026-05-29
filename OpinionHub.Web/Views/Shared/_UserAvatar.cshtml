@@ -1,0 +1,28 @@
+@*
+    Общий партиал для отображения аватарки пользователя.
+    Если AvatarPath заполнен — <img> в круге; иначе fallback-кружок с первой буквой ника.
+    Размер задаётся параметром Size (в пикселях). Шрифт буквы — ~40% от размера.
+*@
+@model OpinionHub.Web.ViewModels.UserAvatarViewModel
+@{
+    var size = Model.Size <= 0 ? 40 : Model.Size;
+    var font = (int)(size * 0.42);
+    var initial = string.IsNullOrEmpty(Model.UserName)
+        ? "?"
+        : Model.UserName.Substring(0, 1).ToUpperInvariant();
+}
+@if (!string.IsNullOrEmpty(Model.AvatarPath))
+{
+    <img src="@Model.AvatarPath"
+         class="rounded-circle flex-shrink-0"
+         style="width:@(size)px;height:@(size)px;object-fit:cover;"
+         alt="@Model.UserName" />
+}
+else
+{
+    <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+         style="width:@(size)px;height:@(size)px;font-size:@(font)px;font-weight:600;line-height:1;"
+         aria-hidden="true">
+        @initial
+    </div>
+}

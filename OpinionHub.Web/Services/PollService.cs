@@ -226,6 +226,7 @@ public class PollService : IPollService
         // умышленно показывают их и дальше — фильтр живёт только здесь.
         var q = _db.Polls
             .Include(p => p.Options)
+            .Include(p => p.Author)
             .Where(p => !p.IsDeleted);
 
         if (string.IsNullOrWhiteSpace(viewerUserId))

@@ -1,0 +1,46 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.PrivacyModel
+@{
+    ViewData["Title"] = "Приватность";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-eye-slash"></i>Приватность</h2>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success py-2 small">@Model.StatusMessage</div>
+}
+
+<p class="text-secondary small mb-3">
+    Списки ваших подписчиков и подписок видны всем — скрыть их нельзя.
+</p>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+    <div class="form-check mb-3">
+        <input asp-for="Input.ShowVotedPolls" class="form-check-input" />
+        <label asp-for="Input.ShowVotedPolls" class="form-check-label fw-semibold">
+            Показывать моё участие в опросах
+        </label>
+        <div class="form-text">
+            Если выключено — вместо вкладки «Участвовал(а)» в вашем профиле гости увидят сообщение
+            «Автор скрыл своё участие в опросах». Анонимные опросы не раскрываются никогда.
+        </div>
+    </div>
+
+    <div class="form-check mb-4">
+        <input asp-for="Input.ShowLikedPolls" class="form-check-input" />
+        <label asp-for="Input.ShowLikedPolls" class="form-check-label fw-semibold">
+            Показывать мои лайки
+        </label>
+        <div class="form-text">
+            Если выключено — вкладка «Лайкнутые» в вашем профиле для других покажет
+            «Автор скрыл свои лайки». В список лайков попадают только публичные не-анонимные опросы.
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check2 me-1"></i>Сохранить
+    </button>
+</form>

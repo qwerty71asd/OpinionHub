@@ -57,7 +57,7 @@
 
                 <div class="text-secondary small d-flex flex-wrap align-items-center gap-1 mt-1">
                     <span>Автор:</span>
-                    @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(Model.IsAnonymousAuthor, Model.Author?.UserName))
+                    @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(Model.IsAnonymousAuthor, Model.Author?.UserName, Model.Author?.AvatarPath))
                     <span class="mx-1">•</span>
                     <span>Голосов: <strong>@total</strong></span>
                     @if (Model.EndDateUtc is not null)

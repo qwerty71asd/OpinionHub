@@ -39,10 +39,9 @@
                         <h5 class="card-title fw-bold mb-2">@poll.Title</h5>
 
                         <div class="mt-auto">
-                            <div class="d-flex align-items-center mb-2 text-secondary small">
-                                <i class="bi bi-person-circle me-2"></i>
-                                <span class="me-1">Автор:</span>
-                                @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName))
+                            <div class="d-flex align-items-center mb-2 small">
+                                @await Html.PartialAsync("_PollAuthor",
+                                    new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath))
                             </div>
 
                             <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id"

@@ -18,9 +18,26 @@ public class SubscriptionService : ISubscriptionService
     public Task<int> GetSubscribersCountAsync(string targetUserId) =>
         _db.UserSubscriptions.CountAsync(s => s.TargetUserId == targetUserId);
 
+    public Task<int> GetSubscriptionsCountAsync(string subscriberId) =>
+        _db.UserSubscriptions.CountAsync(s => s.SubscriberId == subscriberId);
+
     public Task<bool> IsSubscribedAsync(string subscriberId, string targetUserId) =>
         _db.UserSubscriptions.AnyAsync(s =>
             s.SubscriberId == subscriberId && s.TargetUserId == targetUserId);
+
+    public Task<List<ApplicationUser>> GetSubscribersAsync(string targetUserId) =>
+        _db.UserSubscriptions
+            .Where(s => s.TargetUserId == targetUserId)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .Select(s => s.Subscriber)
+            .ToListAsync();
+
+    public Task<List<ApplicationUser>> GetSubscriptionsAsync(string subscriberId) =>
+        _db.UserSubscriptions
+            .Where(s => s.SubscriberId == subscriberId)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .Select(s => s.TargetUser)
+            .ToListAsync();
 
     public async Task<bool> SubscribeAsync(string subscriberId, string targetUserId)
     {

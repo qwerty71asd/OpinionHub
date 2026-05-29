@@ -1,0 +1,54 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.ProfileModel
+@{
+    ViewData["Title"] = "Внешний вид";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-person-badge"></i>Внешний вид</h2>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success py-2 small">@Model.StatusMessage</div>
+}
+
+<form method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+    <div class="mb-4">
+        <label class="form-label small text-secondary mb-2">Аватарка</label>
+        <div class="d-flex align-items-center gap-3 mb-2">
+            @await Html.PartialAsync("_UserAvatar",
+                new OpinionHub.Web.ViewModels.UserAvatarViewModel(Model.UserName, Model.CurrentAvatarPath, 72))
+            <div class="small text-secondary">
+                JPG, PNG или WebP, до 2 МБ.<br />
+                Если файл не выбран — оставим текущую.
+            </div>
+        </div>
+        <input asp-for="Input.AvatarFile" type="file"
+               accept="image/jpeg,image/png,image/webp"
+               class="form-control" />
+        <span asp-validation-for="Input.AvatarFile" class="text-danger small"></span>
+
+        @if (!string.IsNullOrEmpty(Model.CurrentAvatarPath))
+        {
+            <div class="form-check mt-2">
+                <input asp-for="Input.RemoveAvatar" class="form-check-input" />
+                <label asp-for="Input.RemoveAvatar" class="form-check-label small">
+                    Удалить текущую аватарку
+                </label>
+            </div>
+        }
+    </div>
+
+    <div class="mb-4">
+        <label asp-for="Input.Bio" class="form-label small text-secondary mb-1">О себе</label>
+        <textarea asp-for="Input.Bio" class="form-control" rows="4" maxlength="500"
+                  placeholder="Несколько слов о себе…"></textarea>
+        <div class="form-text">До 500 символов, обычный текст. Переводы строк сохраняются.</div>
+        <span asp-validation-for="Input.Bio" class="text-danger small"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check2 me-1"></i>Сохранить
+    </button>
+</form>

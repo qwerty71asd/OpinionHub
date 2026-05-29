@@ -5,6 +5,10 @@
 }
 else
 {
-    <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.UserName"
-       class="text-decoration-none fw-semibold">@Model.UserName</a>
+    <span class="d-inline-flex align-items-center gap-1">
+        @await Html.PartialAsync("_UserAvatar",
+            new OpinionHub.Web.ViewModels.UserAvatarViewModel(Model.UserName, Model.AvatarPath, 24))
+        <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.UserName"
+           class="text-decoration-none fw-semibold">@Model.UserName</a>
+    </span>
 }
