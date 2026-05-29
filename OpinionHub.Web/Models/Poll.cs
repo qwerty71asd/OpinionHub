@@ -15,6 +15,7 @@ public class Poll
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public PollType PollType { get; set; }
     public VisibilityType VisibilityType { get; set; }
     public AudienceType AudienceType { get; set; } = AudienceType.Everyone;

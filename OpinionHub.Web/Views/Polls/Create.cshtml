@@ -37,6 +37,17 @@
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
 
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label fw-bold">Описание</label>
+                    <textarea asp-for="Description"
+                              class="form-control"
+                              rows="4"
+                              maxlength="1000"
+                              placeholder="Расскажите подробнее: контекст, правила, как выбирать..."></textarea>
+                    <div class="form-text">Необязательно. До 1000 символов, переносы строк сохранятся.</div>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
                 <div class="mb-3 p-3 border rounded-3 bg-body-tertiary">
                     <label class="form-label fw-bold mb-1">Заглавное фото (обложка)</label>
                     <div class="form-text mb-2">Фото будет отображаться в ленте (формат 16:9).</div>

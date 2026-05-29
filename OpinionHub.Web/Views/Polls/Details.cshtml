@@ -239,8 +239,7 @@
                         }
                         else
                         {
-                            <a href="https://t.me/share/url?url=@Url.Action("Details", "Polls", new { id = Model.Id }, Context.Request.Scheme)&text=@Uri.EscapeDataString("Проголосуй в опросе: " + Model.Title)"
-                               target="_blank"
+                            <a href="https://t.me/share/url?url=@Url.
                                class="btn btn-sm btn-outline-info w-100 d-flex align-items-center justify-content-center gap-2">
                                 <i class="bi bi-telegram"></i>Поделиться в Telegram
                             </a>
@@ -256,7 +255,6 @@
                 <header class="oh-pane__head d-flex justify-content-between align-items-center">
                     <h2 class="oh-pane__title"><i class="bi bi-bar-chart"></i>Результаты</h2>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill small">
-                        <span class="me-1" style="color:#dc3545;">●</span>В реальном времени
                     </span>
                 </header>
                 <div class="oh-pane__body d-flex flex-column">
@@ -394,6 +392,18 @@
             </section>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <section class="oh-pane mt-3">
+            <header class="oh-pane__head">
+                <h2 class="oh-pane__title"><i class="bi bi-text-paragraph"></i>Описание</h2>
+            </header>
+            <div class="oh-pane__body">
+                <p class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">@Model.Description</p>
+            </div>
+        </section>
+    }
 </div>
 
 @* Lightbox — модалка для просмотра вложения комментария во весь экран *@

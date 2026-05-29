@@ -10,6 +10,9 @@ public class CreatePollViewModel
     [StringLength(200, ErrorMessage = "Максимум 200 символов")]
     public string Title { get; set; } = string.Empty;
 
+    [StringLength(1000, ErrorMessage = "Максимум 1000 символов")]
+    public string? Description { get; set; }
+
     public PollType PollType { get; set; }
     public VisibilityType VisibilityType { get; set; }
     public AudienceType AudienceType { get; set; } = AudienceType.Everyone;

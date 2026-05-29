@@ -59,6 +59,7 @@ public class PollService : IPollService
         var poll = new Poll
         {
             Title = title,
+            Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
             PollType = model.PollType,
             VisibilityType = model.VisibilityType,
             AudienceType = model.AudienceType,
