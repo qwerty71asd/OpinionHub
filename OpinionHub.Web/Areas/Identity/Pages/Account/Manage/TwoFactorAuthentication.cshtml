@@ -1,0 +1,52 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.TwoFactorAuthenticationModel
+@{
+    ViewData["Title"] = "Двухфакторная аутентификация";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-shield-lock"></i>Двухфакторная аутентификация (2FA)</h2>
+
+<p class="text-secondary small mb-3">
+    Используйте authenticator-приложение (Google Authenticator, Microsoft Authenticator, Aegis и т.п.),
+    чтобы запрашивать одноразовый код при входе.
+</p>
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    @if (Model.Is2faEnabled)
+    {
+        <span class="oh-chip is-success"><i class="bi bi-check-circle"></i>2FA включена</span>
+        @if (Model.RecoveryCodesLeft == 0)
+        {
+            <span class="oh-chip is-danger"><i class="bi bi-exclamation-triangle"></i>Recovery-кодов не осталось</span>
+        }
+        else
+        {
+            <span class="oh-chip is-muted"><i class="bi bi-key"></i>Recovery-кодов: @Model.RecoveryCodesLeft</span>
+        }
+    }
+    else
+    {
+        <span class="oh-chip is-muted"><i class="bi bi-shield-slash"></i>2FA отключена</span>
+    }
+</div>
+
+<div class="d-grid gap-2 d-md-flex flex-md-wrap">
+    @if (!Model.Is2faEnabled)
+    {
+        <a asp-page="./EnableAuthenticator" class="btn btn-primary">
+            <i class="bi bi-shield-plus me-1"></i>Настроить authenticator
+        </a>
+    }
+    else
+    {
+        <a asp-page="./Disable2fa" class="btn btn-outline-danger">
+            <i class="bi bi-shield-slash me-1"></i>Отключить 2FA
+        </a>
+        <a asp-page="./ResetAuthenticator" class="btn btn-outline-warning">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Сбросить authenticator
+        </a>
+        <a asp-page="./GenerateRecoveryCodes" class="btn btn-outline-secondary">
+            <i class="bi bi-key me-1"></i>Сгенерировать recovery-коды
+        </a>
+    }
+</div>

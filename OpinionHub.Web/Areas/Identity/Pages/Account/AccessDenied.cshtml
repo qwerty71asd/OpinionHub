@@ -1,0 +1,24 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.AccessDeniedModel
+@{
+    ViewData["Title"] = "Доступ запрещён";
+}
+
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title justify-content-center text-center mb-2 text-danger">
+        <i class="bi bi-shield-exclamation"></i>@ViewData["Title"]
+    </h1>
+    <p class="oh-page-subtitle text-center mb-3">У вас нет прав на просмотр этой страницы.</p>
+
+    <div class="card border-0 shadow-sm oh-card">
+        <div class="card-body p-4 text-center">
+            <div class="mb-3"><i class="bi bi-shield-exclamation display-4 text-danger"></i></div>
+            <p class="text-secondary small mb-4">
+                Если вы считаете, что это ошибка — обратитесь к администратору.
+            </p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-lg w-100">
+                <i class="bi bi-house me-1"></i>На главную
+            </a>
+        </div>
+    </div>
+</div>

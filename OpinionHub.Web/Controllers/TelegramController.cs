@@ -34,7 +34,13 @@ public class TelegramController : Controller
         {
             IsLinked = !string.IsNullOrEmpty(user.TelegramChatId),
             TelegramChatId = user.TelegramChatId,
-            TokenLifetime = _tokens.TokenLifetime
+            TokenLifetime = _tokens.TokenLifetime,
+            NotifyAnonymousPolls = user.NotifyAnonymousPolls,
+            NotifyOnNewSubscriber = user.NotifyOnNewSubscriber,
+            NotifyOnNewPollFromSubscription = user.NotifyOnNewPollFromSubscription,
+            NotifyOnCommentOnMyPoll = user.NotifyOnCommentOnMyPoll,
+            NotifyOnReplyToMyComment = user.NotifyOnReplyToMyComment,
+            NotifyOnLikeMilestone = user.NotifyOnLikeMilestone,
         };
 
         if (!vm.IsLinked)
@@ -67,6 +73,36 @@ public class TelegramController : Controller
             await _userManager.UpdateAsync(user);
             TempData["TelegramMessage"] = "Telegram отвязан.";
         }
+
+        return RedirectToAction(nameof(Link));
+    }
+
+    /// <summary>
+    /// Сохраняет все 6 переключателей Telegram-уведомлений за один POST. Параметры
+    /// приходят из чекбоксов: невыставленный чекбокс HTML вообще не шлёт значение,
+    /// поэтому биндинг даёт false по умолчанию — это ровно нужное нам поведение.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdatePreferences(
+        bool notifyOnNewSubscriber,
+        bool notifyOnNewPollFromSubscription,
+        bool notifyAnonymousPolls,
+        bool notifyOnCommentOnMyPoll,
+        bool notifyOnReplyToMyComment,
+        bool notifyOnLikeMilestone)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Challenge();
+
+        user.NotifyOnNewSubscriber = notifyOnNewSubscriber;
+        user.NotifyOnNewPollFromSubscription = notifyOnNewPollFromSubscription;
+        user.NotifyAnonymousPolls = notifyAnonymousPolls;
+        user.NotifyOnCommentOnMyPoll = notifyOnCommentOnMyPoll;
+        user.NotifyOnReplyToMyComment = notifyOnReplyToMyComment;
+        user.NotifyOnLikeMilestone = notifyOnLikeMilestone;
+        await _userManager.UpdateAsync(user);
+        TempData["TelegramMessage"] = "Настройки уведомлений сохранены.";
 
         return RedirectToAction(nameof(Link));
     }

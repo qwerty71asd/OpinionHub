@@ -1,0 +1,22 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.ResetAuthenticatorModel
+@{
+    ViewData["Title"] = "Сбросить authenticator";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-arrow-counterclockwise"></i>Сбросить authenticator</h2>
+
+<div class="alert alert-warning small">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Сброс отключит 2FA и аннулирует текущий ключ. Вам придётся настроить authenticator
+    в приложении заново. Recovery-коды (если есть) останутся валидными до новой генерации.
+</div>
+
+<form method="post" class="d-flex gap-2 flex-wrap">
+    <a asp-page="./TwoFactorAuthentication" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Отмена
+    </a>
+    <button type="submit" class="btn btn-warning flex-fill">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Сбросить и настроить заново
+    </button>
+</form>

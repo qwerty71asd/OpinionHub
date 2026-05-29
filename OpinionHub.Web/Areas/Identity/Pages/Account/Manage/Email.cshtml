@@ -1,0 +1,54 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.EmailModel
+@{
+    ViewData["Title"] = "Email";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-envelope"></i>Email</h2>
+
+<div class="mb-3">
+    <label class="form-label small text-secondary mb-1">Текущий email</label>
+    <div class="input-group">
+        <input type="email" class="form-control" value="@Model.CurrentEmail" readonly />
+        @if (Model.IsEmailConfirmed)
+        {
+            <span class="input-group-text bg-success-subtle text-success">
+                <i class="bi bi-check-circle me-1"></i>Подтверждён
+            </span>
+        }
+        else
+        {
+            <span class="input-group-text bg-warning-subtle text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>Не подтверждён
+            </span>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.PendingNewEmail))
+{
+    <div class="alert alert-info py-2 small d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span><i class="bi bi-hourglass-split me-1"></i>Запрошена смена на <strong>@Model.PendingNewEmail</strong>.</span>
+        <a asp-page="./ConfirmEmailChange" class="btn btn-sm btn-primary">
+            <i class="bi bi-envelope-check me-1"></i>Ввести код
+        </a>
+    </div>
+}
+
+<form method="post" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+    <div class="mb-3">
+        <label asp-for="Input.NewEmail" class="form-label"></label>
+        <input asp-for="Input.NewEmail" class="form-control" autocomplete="email" />
+        <span asp-validation-for="Input.NewEmail" class="text-danger small"></span>
+    </div>
+
+    <button type="submit" asp-page-handler="Change" class="btn btn-primary btn-lg w-100">
+        <i class="bi bi-envelope-arrow-up me-1"></i>Отправить код для смены
+    </button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

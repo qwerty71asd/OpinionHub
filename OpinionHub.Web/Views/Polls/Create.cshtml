@@ -5,167 +5,172 @@
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 
-<div class="oh-hero py-4 py-md-5 mb-4">
-    <div class="container">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-            <div>
-                <h1 class="display-6 mb-1">Создание опроса</h1>
-                <p class="text-secondary mb-0">Быстро набросай варианты и опубликуй, когда будешь готов.</p>
-            </div>
-            <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">
-                ← В ленту
-            </a>
+<div class="container oh-page oh-page--wide">
+    <div class="oh-page-header">
+        <div>
+            <h1 class="h3 oh-page-title">
+                <i class="bi bi-plus-square"></i>Создание опроса
+            </h1>
+            <p class="oh-page-subtitle mb-0">Быстро набросай варианты и опубликуй, когда будешь готов.</p>
         </div>
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-arrow-left me-1"></i>В ленту
+        </a>
     </div>
-</div>
 
-<div class="container pb-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm oh-card">
-                <div class="card-body p-4 p-md-5">
+    <div class="card border-0 shadow-sm oh-card">
+        <div class="card-body p-4 p-md-4">
 
-                    <form asp-action="Create" method="post" enctype="multipart/form-data">
-                        @Html.AntiForgeryToken()
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
 
-                        @if (!ViewData.ModelState.IsValid)
-                        {
-                            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
-                        }
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+                }
 
-                        <div class="mb-4">
-                            <label asp-for="Title" class="form-label fw-bold">Название</label>
-                            <input asp-for="Title" class="form-control form-control-lg bg-body text-body" placeholder="Например: Где будем обедать?" />
-                            <span asp-validation-for="Title" class="text-danger"></span>
-                        </div>
+                <h6 class="oh-section-title"><i class="bi bi-pencil"></i>Основное</h6>
 
-                        <div class="mb-4 p-3 border rounded bg-body-tertiary">
-                            <label class="form-label fw-bold">Заглавное фото (Обложка)</label>
-                            <div class="form-text mb-2">Фото будет отображаться в ленте (формат 16:9).</div>
-
-                            <label for="coverInput" id="coverInputLabel" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center text-truncate border-2 border-dashed bg-body m-0" style="cursor: pointer; min-height: 55px;">
-                                <i class="bi bi-image me-2 fs-5"></i> <span id="coverInputText" class="fw-medium">Выбрать файл обложки...</span>
-                            </label>
-                            <input type="file" asp-for="CoverImage" class="d-none" id="coverInput" accept="image/*" />
-
-                            <div id="coverPreviewContainer" class="mt-3 d-none">
-                                <img id="coverPreview" class="img-fluid rounded border shadow-sm mb-2" style="max-height: 250px; object-fit: cover; width: 100%;" />
-                                <div id="aspectRatioWarning" class="alert alert-warning d-none mb-0">
-                                    <i class="bi bi-exclamation-triangle"></i> Соотношение сторон этого фото отличается от 16:9.
-                                    <div class="mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveToAttachments()">Сделать обычным вложением</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label asp-for="PollType" class="form-label fw-bold">Тип голосования</label>
-                                <select asp-for="PollType" class="form-select bg-body text-body" id="pollTypeSelect">
-                                    <option value="SingleChoice">Один вариант</option>
-                                    <option value="MultipleChoice">Несколько вариантов</option>
-                                </select>
-                                <div class="form-text text-primary mt-2" id="pollTypeHint" style="min-height: 40px;"></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="VisibilityType" class="form-label fw-bold">Видимость голосов</label>
-                                <select asp-for="VisibilityType" class="form-select bg-body text-body" id="visibilitySelect">
-                                    <option value="Public">Открытое голосование</option>
-                                    <option value="Anonymous">Анонимное голосование</option>
-                                </select>
-                                <div class="form-text text-primary mt-2" id="visibilityHint" style="min-height: 40px;"></div>
-                            </div>
-                        </div>
-
-                        <div class="mt-4">
-                            <label asp-for="AudienceType" class="form-label fw-bold">Доступ к опросу</label>
-                            <select asp-for="AudienceType" class="form-select bg-body text-body" id="audienceSelect">
-                                <option value="Everyone">Все пользователи</option>
-                                <option value="SelectedUsers">Только выбранные пользователи</option>
-                            </select>
-                            <div class="form-text text-primary mt-2" id="audienceHint"></div>
-                        </div>
-
-                        <div id="audienceUsersBox" class="mt-3 border rounded-3 p-3 bg-body shadow-sm d-none">
-                            <label class="form-label fw-bold">Пригласить участников</label>
-                            <input type="text" class="form-control bg-body text-body" id="userSearch" placeholder="Начни вводить логин…" autocomplete="off" />
-                            <div class="list-group mt-2 shadow-sm position-absolute z-3 w-100" id="userResults" style="max-height: 220px; overflow:auto; max-width: 90%;"></div>
-
-                            <div id="selectedUsers" class="mt-3 d-flex flex-wrap gap-2"></div>
-                            <div id="audienceValidation" class="text-danger small mt-2 d-none">Добавь хотя бы одного пользователя.</div>
-                        </div>
-
-                        <div class="row g-4 mt-2 p-3 border rounded bg-body-tertiary align-items-start">
-                            <div class="col-md-7">
-                                <label class="form-label fw-bold">Срок проведения</label>
-                                <select class="form-select border-secondary bg-body text-body" id="quickDateSelect">
-                                    <option value="tomorrow">До завтра</option>
-                                    <option value="week" selected>1 неделя</option>
-                                    <option value="month">1 месяц (максимум)</option>
-                                    <option value="custom">Указать точную дату и время...</option>
-                                </select>
-
-                                <div id="customDateContainer" class="mt-2 d-none">
-                                    <input asp-for="EndDateUtc" class="form-control border-primary bg-body text-body" type="datetime-local" id="customDateInput" />
-                                    <div class="form-text text-danger d-none" id="dateError">Дата не может быть больше, чем через месяц!</div>
-                                </div>
-
-                                <div class="form-text mt-2 fs-6" id="dateHint"></div>
-                            </div>
-                            <div class="col-md-5 pt-4">
-                                <div class="form-check form-switch fs-5">
-                                    <input class="form-check-input" type="checkbox" asp-for="CanChangeVote" id="canChangeVoteSwitch">
-                                    <label class="form-check-label fs-6 ms-2 text-body" for="canChangeVoteSwitch">Разрешить менять голос</label>
-                                </div>
-                                <div class="form-text mt-1 text-muted">Пользователи смогут переголосовать до окончания.</div>
-                            </div>
-                        </div>
-
-                        <hr class="my-5" />
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0 fw-bold">Варианты ответа</h5>
-                            <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="addOptionBtn">+ Добавить</button>
-                        </div>
-
-                        <div id="optionsList" class="vstack gap-3">
-                            @for (var i = 0; i < Model.Options.Count; i++)
-                            {
-                                <div class="input-group align-items-stretch shadow-sm rounded">
-                                    <span class="input-group-text bg-body-tertiary fw-bold text-secondary border-end-0">@(i + 1)</span>
-                                    <input name="Options[@i].Text" class="form-control border-start-0 border-end-0 ps-0 bg-body text-body" value="@Model.Options[i].Text" placeholder="Текст варианта..." required />
-
-                                    <label for="optionImage_@i" class="input-group-text bg-body text-secondary border-start-0 mb-0 px-3 d-flex align-items-center justify-content-center option-image-label" style="cursor: pointer; width: 54px; overflow: hidden; padding: 0 !important;" title="Прикрепить фото">
-                                        <i class="bi bi-paperclip fs-5 option-icon"></i>
-                                        <img class="option-preview d-none" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
-                                    </label>
-                                    <input type="file" name="Options[@i].Image" id="optionImage_@i" class="d-none option-image-input" accept="image/*" />
-
-                                    <button type="button" class="btn btn-danger remove-option px-3" title="Удалить"><i class="bi bi-trash"></i></button>
-                                </div>
-                            }
-                        </div>
-
-                        <hr class="my-5" />
-
-                        <div class="mb-4">
-                            <label asp-for="AttachedFiles" class="form-label fw-bold">Дополнительные файлы</label>
-                            <input type="file" asp-for="AttachedFiles" class="form-control bg-body text-body" multiple id="attachmentInput" />
-                            <div class="form-text">Документы, схемы или референсы. Они будут доступны для скачивания внутри опроса.</div>
-                        </div>
-
-                        <div class="d-flex flex-column flex-md-row justify-content-end gap-3 mt-5">
-                            <button type="submit" class="btn btn-light border px-4" name="PublishNow" value="false">
-                                Сохранить черновик
-                            </button>
-                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow" name="PublishNow" value="true">
-                                Опубликовать сейчас
-                            </button>
-                        </div>
-                    </form>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label fw-bold">Название</label>
+                    <input asp-for="Title" class="form-control form-control-lg" placeholder="Например: Где будем обедать?" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
-            </div>
+
+                <div class="mb-3 p-3 border rounded-3 bg-body-tertiary">
+                    <label class="form-label fw-bold mb-1">Заглавное фото (обложка)</label>
+                    <div class="form-text mb-2">Фото будет отображаться в ленте (формат 16:9).</div>
+
+                    <label for="coverInput" id="coverInputLabel" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center text-truncate border-2 border-dashed m-0" style="cursor: pointer; min-height: 52px;">
+                        <i class="bi bi-image me-2 fs-5"></i> <span id="coverInputText" class="fw-medium">Выбрать файл обложки...</span>
+                    </label>
+                    <input type="file" asp-for="CoverImage" class="d-none" id="coverInput" accept="image/*" />
+
+                    <div id="coverPreviewContainer" class="mt-3 d-none">
+                        <img id="coverPreview" class="img-fluid rounded border shadow-sm mb-2" style="max-height: 220px; object-fit: cover; width: 100%;" />
+                        <div id="aspectRatioWarning" class="alert alert-warning d-none mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> Соотношение сторон этого фото отличается от 16:9.
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveToAttachments()">Сделать обычным вложением</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="oh-section-title"><i class="bi bi-sliders"></i>Тип и доступ</h6>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="PollType" class="form-label fw-bold">Тип голосования</label>
+                        <select asp-for="PollType" class="form-select" id="pollTypeSelect">
+                            <option value="SingleChoice">Один вариант</option>
+                            <option value="MultipleChoice">Несколько вариантов</option>
+                        </select>
+                        <div class="form-text text-primary mt-1" id="pollTypeHint" style="min-height: 32px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VisibilityType" class="form-label fw-bold">Видимость голосов</label>
+                        <select asp-for="VisibilityType" class="form-select" id="visibilitySelect">
+                            <option value="Public">Открытое голосование</option>
+                            <option value="Anonymous">Анонимное голосование</option>
+                        </select>
+                        <div class="form-text text-primary mt-1" id="visibilityHint" style="min-height: 32px;"></div>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <label asp-for="AudienceType" class="form-label fw-bold">Доступ к опросу</label>
+                    <select asp-for="AudienceType" class="form-select" id="audienceSelect">
+                        <option value="Everyone">Все пользователи</option>
+                        <option value="SelectedUsers">Только выбранные пользователи</option>
+                    </select>
+                    <div class="form-text text-primary mt-1" id="audienceHint"></div>
+                </div>
+
+                <div id="audienceUsersBox" class="mt-3 border rounded-3 p-3 d-none position-relative">
+                    <label class="form-label fw-bold">Пригласить участников</label>
+                    <input type="text" class="form-control" id="userSearch" placeholder="Начни вводить логин…" autocomplete="off" />
+                    <div class="list-group mt-2 shadow-sm position-absolute z-3 w-100" id="userResults" style="max-height: 220px; overflow:auto; max-width: 90%;"></div>
+
+                    <div id="selectedUsers" class="mt-3 d-flex flex-wrap gap-2"></div>
+                    <div id="audienceValidation" class="text-danger small mt-2 d-none">Добавь хотя бы одного пользователя.</div>
+                </div>
+
+                <h6 class="oh-section-title"><i class="bi bi-clock"></i>Срок и поведение</h6>
+
+                <div class="row g-3 align-items-start">
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold">Срок проведения</label>
+                        <select class="form-select" id="quickDateSelect">
+                            <option value="tomorrow">До завтра</option>
+                            <option value="week" selected>1 неделя</option>
+                            <option value="month">1 месяц (максимум)</option>
+                            <option value="custom">Указать точную дату и время...</option>
+                        </select>
+
+                        <div id="customDateContainer" class="mt-2 d-none">
+                            <input asp-for="EndDateUtc" class="form-control border-primary" type="datetime-local" id="customDateInput" />
+                            <div class="form-text text-danger d-none" id="dateError">Дата не может быть больше, чем через месяц!</div>
+                        </div>
+
+                        <div class="form-text mt-1" id="dateHint"></div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-check form-switch fs-6 mt-md-4 pt-md-1">
+                            <input class="form-check-input" type="checkbox" asp-for="CanChangeVote" id="canChangeVoteSwitch">
+                            <label class="form-check-label ms-1" for="canChangeVoteSwitch">Разрешить менять голос</label>
+                        </div>
+                        <div class="form-text text-secondary">Пользователи смогут переголосовать до окончания.</div>
+
+                        <div class="form-check form-switch fs-6 mt-2">
+                            <input class="form-check-input" type="checkbox" asp-for="IsAnonymousAuthor" id="isAnonymousAuthorSwitch">
+                            <label class="form-check-label ms-1" for="isAnonymousAuthorSwitch">Опубликовать анонимно</label>
+                        </div>
+                        <div class="form-text text-secondary">В ленте и на странице опроса будет «Аноним».</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                    <h6 class="oh-section-title mb-0"><i class="bi bi-list-ol"></i>Варианты ответа</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addOptionBtn">
+                        <i class="bi bi-plus-lg me-1"></i>Добавить
+                    </button>
+                </div>
+
+                <div id="optionsList" class="vstack gap-2">
+                    @for (var i = 0; i < Model.Options.Count; i++)
+                    {
+                        <div class="input-group align-items-stretch shadow-sm rounded">
+                            <span class="input-group-text bg-body-tertiary fw-bold text-secondary border-end-0">@(i + 1)</span>
+                            <input name="Options[@i].Text" class="form-control border-start-0 border-end-0 ps-0" value="@Model.Options[i].Text" placeholder="Текст варианта..." required />
+
+                            <label for="optionImage_@i" class="input-group-text text-secondary border-start-0 mb-0 px-3 d-flex align-items-center justify-content-center option-image-label" style="cursor: pointer; width: 54px; overflow: hidden; padding: 0 !important;" title="Прикрепить фото">
+                                <i class="bi bi-paperclip fs-5 option-icon"></i>
+                                <img class="option-preview d-none" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                            </label>
+                            <input type="file" name="Options[@i].Image" id="optionImage_@i" class="d-none option-image-input" accept="image/*" />
+
+                            <button type="button" class="btn btn-outline-danger remove-option px-3" title="Удалить"><i class="bi bi-trash"></i></button>
+                        </div>
+                    }
+                </div>
+
+                <h6 class="oh-section-title mt-4"><i class="bi bi-paperclip"></i>Дополнительные файлы</h6>
+
+                <div class="mb-3">
+                    <input type="file" asp-for="AttachedFiles" class="form-control" multiple id="attachmentInput" />
+                    <div class="form-text">Документы, схемы или референсы. Будут доступны для скачивания внутри опроса.</div>
+                </div>
+
+                <div class="d-flex flex-column flex-md-row justify-content-end gap-2 mt-4">
+                    <button type="submit" class="btn btn-outline-secondary" name="PublishNow" value="false">
+                        <i class="bi bi-archive me-1"></i>Сохранить черновик
+                    </button>
+                    <button type="submit" class="btn btn-primary fw-semibold" name="PublishNow" value="true">
+                        <i class="bi bi-send me-1"></i>Опубликовать сейчас
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

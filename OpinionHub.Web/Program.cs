@@ -62,6 +62,7 @@ builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<IPartialViewRenderer, PartialViewRenderer>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
 var botToken = builder.Configuration["TelegramBot:Token"];

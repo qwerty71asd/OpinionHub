@@ -1,0 +1,22 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.GenerateRecoveryCodesModel
+@{
+    ViewData["Title"] = "Сгенерировать recovery-коды";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-key"></i>Сгенерировать recovery-коды</h2>
+
+<div class="alert alert-warning small">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Сгенерируйте новые recovery-коды, если потеряли старые. <strong>Старые коды перестанут работать.</strong>
+    Каждый код можно использовать один раз для входа без приложения-аутентификатора.
+</div>
+
+<form method="post" class="d-flex gap-2 flex-wrap">
+    <a asp-page="./TwoFactorAuthentication" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Отмена
+    </a>
+    <button type="submit" class="btn btn-warning flex-fill">
+        <i class="bi bi-key me-1"></i>Сгенерировать 10 новых кодов
+    </button>
+</form>

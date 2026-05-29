@@ -116,6 +116,23 @@ function initPollDetails(pollId, labels, initialData) {
         .withAutomaticReconnect()
         .build();
 
+    // Экспортируем connectionId наружу — inline-скрипт в Details.cshtml использует
+    // его для X-SignalR-Connection-Id-заголовка в fetch'е лайка опроса, чтобы сервер
+    // исключил инициатора из broadcast'а через Clients.GroupExcept.
+    window.getSignalrConnectionId = function () {
+        return connection.connectionId || null;
+    };
+
+    // Лайки опроса — broadcast от LikesController после успешного POST/DELETE.
+    // Перезаписываем только счётчик; собственное состояние «лайкнул» — локальное
+    // у каждого зрителя, не передаётся через SignalR.
+    connection.on('pollLikeUpdated', function (data) {
+        const countEl = document.getElementById('poll-like-count');
+        if (countEl && data && typeof data.count === 'number') {
+            countEl.textContent = data.count;
+        }
+    });
+
     connection.on('updateStats', function (data) {
         // Обновляем прогресс-бары и текст
         let newChartData = [];
@@ -146,7 +163,16 @@ function initPollDetails(pollId, labels, initialData) {
     connection.start().then(function () {
         connection.invoke('JoinPollGroup', pollId);
         console.log('Подключились к комнате опроса:', pollId);
+        // Поднимаем секцию комментариев на том же соединении — отдельный WebSocket
+        // для комментов не нужен. initPollComments сам подпишется на 'commentCreated'.
+        if (typeof window.initPollComments === 'function') {
+            window.initPollComments(pollId, connection);
+        }
     }).catch(function (err) {
         console.error('Ошибка SignalR:', err.toString());
+        // Если SignalR не поднялся — комменты всё равно должны работать (хотя без real-time).
+        if (typeof window.initPollComments === 'function') {
+            window.initPollComments(pollId, null);
+        }
     });
 }

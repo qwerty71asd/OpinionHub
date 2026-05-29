@@ -67,6 +67,7 @@ public class PollService : IPollService
             AuthorId = authorId,
             Status = model.PublishNow ? PollStatus.Active : PollStatus.Draft,
             CoverImagePath = coverPath, // Сохраняем путь к обложке
+            IsAnonymousAuthor = model.IsAnonymousAuthor,
             AllowedUsers = model.AudienceType == AudienceType.SelectedUsers
                 ? (model.AllowedUserIds ?? new List<string>()).Select(uid => new PollAllowedUser { UserId = uid }).ToList()
                 : new List<PollAllowedUser>()

@@ -8,26 +8,34 @@ namespace OpinionHub.Web.Services;
 public class CommentService : ICommentService
 {
     private readonly ApplicationDbContext _db;
+    private readonly ITelegramNotificationService? _telegram;
 
-    public CommentService(ApplicationDbContext db)
+    public CommentService(ApplicationDbContext db, ITelegramNotificationService? telegram = null)
     {
         _db = db;
+        _telegram = telegram; // nullable: бот может быть не настроен в конфиге
     }
 
     public async Task<IReadOnlyList<CommentNodeViewModel>> GetCommentsTreeAsync(Guid pollId, string? viewerUserId)
     {
         // 1) Автор опроса нужен для двух флагов (IsByPollAuthor и IsLikedByPollAuthor).
-        //    Дёшево вытащить отдельным запросом и не тянуть весь Poll.
-        var pollAuthorId = await _db.Polls
+        //    Дёшево вытащить отдельным запросом и не тянуть весь Poll. Заодно тянем
+        //    IsAnonymousAuthor — при анонимном опросе бейдж «Автор» и звёздочка
+        //    «Лайк от автора» должны быть скрыты во всех комментариях.
+        var pollInfo = await _db.Polls
             .Where(p => p.Id == pollId)
-            .Select(p => p.AuthorId)
+            .Select(p => new { p.AuthorId, p.IsAnonymousAuthor })
             .FirstOrDefaultAsync();
 
-        if (pollAuthorId is null)
+        if (pollInfo is null)
             return Array.Empty<CommentNodeViewModel>();
 
-        // 2) Плоский список комментариев + имя автора. Сортируем по времени —
-        //    при сборке дерева порядок ответов внутри узла останется хронологическим.
+        var pollAuthorId = pollInfo.AuthorId;
+        var hideAuthorMarkers = pollInfo.IsAnonymousAuthor;
+
+        // 2) Плоский список комментариев + имя автора + имя автора parent'а
+        //    (через nav property — EF делает LEFT JOIN, root-комменты получают null).
+        //    Сортируем по времени — flat-список потомков под root останется хронологическим.
         var flat = await _db.Comments
             .Where(c => c.PollId == pollId)
             .OrderBy(c => c.CreatedAtUtc)
@@ -39,6 +47,7 @@ public class CommentService : ICommentService
                 AuthorId = c.AuthorId,
                 AuthorUserName = c.Author.UserName ?? string.Empty,
                 IsByPollAuthor = c.AuthorId == pollAuthorId,
+                ParentAuthorUserName = c.ParentComment != null ? c.ParentComment.Author.UserName : null,
                 Text = c.Text,
                 ImagePath = c.ImagePath,
                 CreatedAtUtc = c.CreatedAtUtc,
@@ -82,22 +91,47 @@ public class CommentService : ICommentService
         foreach (var node in flat)
         {
             node.LikeCount = counts.TryGetValue(node.Id, out var c) ? c : 0;
-            node.IsLikedByPollAuthor = likedByAuthorSet.Contains(node.Id);
+            node.IsLikedByPollAuthor = !hideAuthorMarkers && likedByAuthorSet.Contains(node.Id);
             node.IsLikedByMe = likedByMeSet.Contains(node.Id);
+            if (hideAuthorMarkers) node.IsByPollAuthor = false;
         }
 
-        // 4) Сборка дерева. Index by Id, потом раскладываем по родителям.
-        //    Если ParentCommentId указывает на отсутствующий узел (не должно случаться,
-        //    но FK Restrict его не удалит), считаем такой комментарий корневым.
+        // 4) TikTok-flat: для каждого root собираем плоский список ВСЕХ потомков любой
+        //    глубины в порядке создания. Для root.RootCommentId = root.Id; для каждого
+        //    потомка поднимаемся по цепочке parent'ов до root и кешируем результат —
+        //    итоговая сложность O(n) по числу комментариев.
         var byId = flat.ToDictionary(n => n.Id);
         var roots = new List<CommentNodeViewModel>();
+        var rootOfId = new Dictionary<Guid, Guid>(flat.Count);
 
+        // Сначала отделяем roots — они сами себе корень.
         foreach (var node in flat)
         {
-            if (node.ParentCommentId is { } parentId && byId.TryGetValue(parentId, out var parent))
-                parent.Replies.Add(node);
-            else
+            if (node.ParentCommentId is null || !byId.ContainsKey(node.ParentCommentId.Value))
+            {
+                node.RootCommentId = node.Id;
+                rootOfId[node.Id] = node.Id;
                 roots.Add(node);
+            }
+        }
+
+        // Для всех остальных — поднимаемся до уже известного корня, кешируя путь.
+        foreach (var node in flat)
+        {
+            if (rootOfId.ContainsKey(node.Id)) continue;
+
+            var path = new List<Guid>();
+            var cursor = node;
+            while (!rootOfId.TryGetValue(cursor.Id, out _))
+            {
+                path.Add(cursor.Id);
+                cursor = byId[cursor.ParentCommentId!.Value];
+            }
+            var rootId = rootOfId[cursor.Id];
+            foreach (var id in path) rootOfId[id] = rootId;
+
+            node.RootCommentId = rootId;
+            byId[rootId].Replies.Add(node);
         }
 
         return roots;
@@ -112,21 +146,35 @@ public class CommentService : ICommentService
         if (text.Length > 2000)
             throw new InvalidOperationException("Слишком длинный комментарий (максимум 2000 символов).");
 
-        // Проверка опроса (заодно достаём AuthorId опроса — пригодится для IsByPollAuthor).
-        var pollAuthorId = await _db.Polls
+        // Проверка опроса (заодно достаём AuthorId опроса — пригодится для IsByPollAuthor —
+        // и IsAnonymousAuthor: при анонимном опросе бейдж «Автор» нужно скрыть).
+        var pollInfo = await _db.Polls
             .Where(p => p.Id == pollId && !p.IsDeleted)
-            .Select(p => p.AuthorId)
+            .Select(p => new { p.AuthorId, p.IsAnonymousAuthor })
             .FirstOrDefaultAsync();
-        if (pollAuthorId is null)
+        if (pollInfo is null)
             throw new InvalidOperationException("Опрос не найден.");
+        var pollAuthorId = pollInfo.AuthorId;
 
         // ParentComment должен принадлежать тому же опросу — иначе можно подсунуть чужой parentId.
+        // Заодно вытаскиваем имя автора parent'а (для @mention) и его ParentCommentId
+        // — он нужен, чтобы дальше подняться до root треда.
+        string? parentAuthorUserName = null;
+        Guid? parentParentCommentId = null;
         if (parentCommentId.HasValue)
         {
-            var parentOk = await _db.Comments
-                .AnyAsync(c => c.Id == parentCommentId.Value && c.PollId == pollId);
-            if (!parentOk)
+            var parentInfo = await _db.Comments
+                .Where(c => c.Id == parentCommentId.Value && c.PollId == pollId)
+                .Select(c => new
+                {
+                    AuthorUserName = c.Author.UserName,
+                    c.ParentCommentId,
+                })
+                .FirstOrDefaultAsync();
+            if (parentInfo is null)
                 throw new InvalidOperationException("Родительский комментарий не найден.");
+            parentAuthorUserName = parentInfo.AuthorUserName;
+            parentParentCommentId = parentInfo.ParentCommentId;
         }
 
         var comment = new Comment
@@ -141,10 +189,45 @@ public class CommentService : ICommentService
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
 
+        // Telegram-уведомление автору целевой сущности (опроса или parent-коммента).
+        // Сервис сам проверит привязку Telegram, per-event флаг и self-notification.
+        if (_telegram is not null)
+        {
+            if (parentCommentId.HasValue)
+                await _telegram.NotifyReplyToMyCommentAsync(comment.Id);
+            else
+                await _telegram.NotifyCommentOnMyPollAsync(comment.Id);
+        }
+
         var authorUserName = await _db.Users
             .Where(u => u.Id == authorId)
             .Select(u => u.UserName)
             .FirstOrDefaultAsync() ?? string.Empty;
+
+        // RootCommentId: для root-коммента — он сам; для reply — поднимаемся по цепочке.
+        // Глубина треда обычно <5, лишние SQL'ы тут терпимы. Цепочка обрывается, когда
+        // у предка ParentCommentId == null.
+        Guid rootCommentId = comment.Id;
+        if (parentCommentId.HasValue)
+        {
+            if (parentParentCommentId is null)
+            {
+                rootCommentId = parentCommentId.Value;
+            }
+            else
+            {
+                var cursor = parentParentCommentId.Value;
+                while (true)
+                {
+                    var next = await _db.Comments
+                        .Where(c => c.Id == cursor)
+                        .Select(c => c.ParentCommentId)
+                        .FirstOrDefaultAsync();
+                    if (next is null) { rootCommentId = cursor; break; }
+                    cursor = next.Value;
+                }
+            }
+        }
 
         return new CommentNodeViewModel
         {
@@ -153,7 +236,9 @@ public class CommentService : ICommentService
             ParentCommentId = comment.ParentCommentId,
             AuthorId = comment.AuthorId,
             AuthorUserName = authorUserName,
-            IsByPollAuthor = comment.AuthorId == pollAuthorId,
+            IsByPollAuthor = !pollInfo.IsAnonymousAuthor && comment.AuthorId == pollAuthorId,
+            ParentAuthorUserName = parentAuthorUserName,
+            RootCommentId = rootCommentId,
             Text = comment.Text,
             ImagePath = comment.ImagePath,
             CreatedAtUtc = comment.CreatedAtUtc,

@@ -21,20 +21,23 @@ public class LikeService : ILikeService
     public Task<bool> IsPollLikedAsync(string userId, Guid pollId) =>
         _db.PollLikes.AnyAsync(pl => pl.UserId == userId && pl.PollId == pollId);
 
-    public async Task LikePollAsync(string userId, Guid pollId)
+    public async Task<string> LikePollAsync(string userId, Guid pollId)
     {
-        var exists = await IsPollLikedAsync(userId, pollId);
-        if (exists) return;
-
-        // Перед записью проверим, что опрос существует (и не soft-удалён нам это не мешает —
-        // автор удалил, но кто-то может ещё видеть карточку из истории; на soft-deleted лайкать
-        // запрещаем, чтобы не плодить активность на скрытом контенте).
-        var pollExistsAndVisible = await _db.Polls.AnyAsync(p => p.Id == pollId && !p.IsDeleted);
-        if (!pollExistsAndVisible)
+        // Один запрос вместо двух: достаём AuthorId и проверяем существование/soft-delete.
+        // На soft-deleted лайкать запрещаем, чтобы не плодить активность на скрытом контенте.
+        var authorId = await _db.Polls
+            .Where(p => p.Id == pollId && !p.IsDeleted)
+            .Select(p => p.AuthorId)
+            .FirstOrDefaultAsync();
+        if (authorId is null)
             throw new InvalidOperationException("Опрос не найден.");
+
+        var exists = await IsPollLikedAsync(userId, pollId);
+        if (exists) return authorId;
 
         _db.PollLikes.Add(new PollLike { UserId = userId, PollId = pollId });
         await _db.SaveChangesAsync();
+        return authorId;
     }
 
     public async Task UnlikePollAsync(string userId, Guid pollId)
@@ -53,24 +56,37 @@ public class LikeService : ILikeService
     public Task<bool> IsCommentLikedAsync(string userId, Guid commentId) =>
         _db.CommentLikes.AnyAsync(cl => cl.UserId == userId && cl.CommentId == commentId);
 
-    public async Task LikeCommentAsync(string userId, Guid commentId)
+    public async Task<(Guid PollId, string AuthorId)> LikeCommentAsync(string userId, Guid commentId)
     {
-        var exists = await IsCommentLikedAsync(userId, commentId);
-        if (exists) return;
-
-        var commentExists = await _db.Comments.AnyAsync(c => c.Id == commentId);
-        if (!commentExists)
+        // Один запрос: достаём pollId, AuthorId коммента и проверяем существование.
+        var info = await _db.Comments
+            .Where(c => c.Id == commentId)
+            .Select(c => new { c.PollId, c.AuthorId })
+            .FirstOrDefaultAsync();
+        if (info is null)
             throw new InvalidOperationException("Комментарий не найден.");
+
+        var exists = await IsCommentLikedAsync(userId, commentId);
+        if (exists) return (info.PollId, info.AuthorId);
 
         _db.CommentLikes.Add(new CommentLike { UserId = userId, CommentId = commentId });
         await _db.SaveChangesAsync();
+        return (info.PollId, info.AuthorId);
     }
 
-    public async Task UnlikeCommentAsync(string userId, Guid commentId)
+    public async Task<Guid> UnlikeCommentAsync(string userId, Guid commentId)
     {
+        var pollId = await _db.Comments
+            .Where(c => c.Id == commentId)
+            .Select(c => (Guid?)c.PollId)
+            .FirstOrDefaultAsync();
+        if (pollId is null)
+            throw new InvalidOperationException("Комментарий не найден.");
+
         var row = await _db.CommentLikes.FirstOrDefaultAsync(cl => cl.UserId == userId && cl.CommentId == commentId);
-        if (row is null) return;
+        if (row is null) return pollId.Value;
         _db.CommentLikes.Remove(row);
         await _db.SaveChangesAsync();
+        return pollId.Value;
     }
 }

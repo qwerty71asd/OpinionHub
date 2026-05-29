@@ -1,0 +1,46 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.IndexModel
+@{
+    ViewData["Title"] = "Профиль";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-person"></i>Профиль</h2>
+
+<div class="mb-3">
+    <label class="form-label small text-secondary mb-1">Имя пользователя</label>
+    <input type="text" class="form-control" value="@Model.UserName" readonly />
+</div>
+
+<div class="mb-4">
+    <label class="form-label small text-secondary mb-1">Email</label>
+    <div class="input-group">
+        <input type="email" class="form-control" value="@Model.Email" readonly />
+        @if (Model.IsEmailConfirmed)
+        {
+            <span class="input-group-text bg-success-subtle text-success">
+                <i class="bi bi-check-circle me-1"></i>Подтверждён
+            </span>
+        }
+        else
+        {
+            <span class="input-group-text bg-warning-subtle text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>Не подтверждён
+            </span>
+        }
+    </div>
+    @if (!Model.IsEmailConfirmed)
+    {
+        <div class="form-text">
+            Подтвердите почту, чтобы голосовать и комментировать.
+            <a asp-area="Identity" asp-page="/Account/ResendEmailConfirmation">Отправить код повторно</a>
+        </div>
+    }
+</div>
+
+<h2 class="oh-section-title"><i class="bi bi-bell"></i>Уведомления</h2>
+<p class="text-secondary small mb-2">
+    Настройка уведомлений и привязка Telegram-аккаунта — на отдельной странице.
+</p>
+<a asp-area="" asp-controller="Telegram" asp-action="Link" class="btn btn-outline-primary">
+    <i class="bi bi-telegram me-1"></i>Telegram-уведомления
+</a>

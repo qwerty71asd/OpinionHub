@@ -191,6 +191,24 @@ namespace OpinionHub.Web.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<bool>("NotifyAnonymousPolls")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnCommentOnMyPoll")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnLikeMilestone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnNewPollFromSubscription")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnNewSubscriber")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnReplyToMyComment")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
@@ -335,6 +353,9 @@ namespace OpinionHub.Web.Migrations
 
                     b.Property<DateTime?>("EndDateUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsAnonymousAuthor")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");

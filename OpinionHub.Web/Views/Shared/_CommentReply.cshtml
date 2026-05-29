@@ -1,0 +1,123 @@
+@model OpinionHub.Web.ViewModels.CommentNodeViewModel
+@{
+    var initial = string.IsNullOrEmpty(Model.AuthorUserName) ? "?" : Model.AuthorUserName[0].ToString().ToUpper();
+    // Изначально reply скрыт — раскрывает JS батчами по 3. Кроме случая, когда reply
+    // вставляется через AJAX после сабмита — JS снимает d-none сразу после insertAdjacentHTML.
+}
+
+<div class="reply-item d-none"
+     data-comment-id="@Model.Id"
+     data-root-id="@Model.RootCommentId"
+     data-author-username="@Model.AuthorUserName">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-3">
+            <div class="d-flex gap-3">
+                <div class="flex-shrink-0">
+                    <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold"
+                         style="width:32px;height:32px;font-size:0.85rem;">
+                        @initial
+                    </div>
+                </div>
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.AuthorUserName" class="fw-semibold text-decoration-none">
+                            @Model.AuthorUserName
+                        </a>
+                        @if (Model.IsByPollAuthor)
+                        {
+                            <span class="badge rounded-pill bg-primary-subtle text-primary" title="Автор опроса">Автор</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.ParentAuthorUserName))
+                        {
+                            <span class="reply-parent-mention">
+                                · отвечает <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.ParentAuthorUserName">@@@Model.ParentAuthorUserName</a>
+                            </span>
+                        }
+                        <span class="text-secondary small">@Model.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+
+                    <div class="mb-2" style="white-space:pre-wrap; word-break:break-word;">@Model.Text</div>
+
+                    @if (!string.IsNullOrEmpty(Model.ImagePath))
+                    {
+                        <div class="mb-2">
+                            <img src="@Model.ImagePath"
+                                 alt="Изображение"
+                                 class="rounded border comment-image"
+                                 role="button"
+                                 tabindex="0"
+                                 style="max-width:240px; max-height:240px; cursor:zoom-in;" />
+                        </div>
+                    }
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button"
+                                class="btn btn-sm @(Model.IsLikedByMe ? "btn-danger" : "btn-outline-danger") comment-like-btn d-inline-flex align-items-center gap-1"
+                                data-comment-id="@Model.Id"
+                                data-liked="@(Model.IsLikedByMe ? "true" : "false")"
+                                aria-pressed="@(Model.IsLikedByMe ? "true" : "false")">
+                            <i class="bi @(Model.IsLikedByMe ? "bi-heart-fill" : "bi-heart")"></i>
+                            <span class="comment-like-count">@Model.LikeCount</span>
+                        </button>
+
+                        @if (Model.IsLikedByPollAuthor)
+                        {
+                            <span class="badge rounded-pill bg-warning-subtle text-warning" title="Лайк от автора опроса">
+                                <i class="bi bi-star-fill me-1"></i>Лайк от автора
+                            </span>
+                        }
+
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-link text-decoration-none comment-reply-toggle"
+                                    data-comment-id="@Model.Id"
+                                    data-author-username="@Model.AuthorUserName">
+                                <i class="bi bi-reply me-1"></i>Ответить
+                            </button>
+                        }
+                    </div>
+
+                    <div class="comment-reply-form-wrap mt-2 d-none" id="reply-form-@Model.Id">
+                        <form class="comment-reply-form oh-composer is-compact" data-parent-id="@Model.Id">
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="oh-composer-pill">
+                                    <textarea class="oh-composer-input"
+                                              name="text"
+                                              rows="1"
+                                              maxlength="2000"
+                                              placeholder="Ответ..."></textarea>
+                                    <input type="file"
+                                           class="oh-composer-file d-none"
+                                           accept="image/jpeg,image/png,image/webp,image/gif" />
+                                    <button type="button"
+                                            class="oh-composer-icon-btn oh-composer-attach"
+                                            title="Прикрепить фото (только одно)"
+                                            aria-label="Прикрепить фото">
+                                        <i class="bi bi-paperclip"></i>
+                                    </button>
+                                    <button type="submit"
+                                            class="btn btn-primary oh-composer-send"
+                                            title="Отправить"
+                                            aria-label="Отправить">
+                                        <i class="bi bi-send-fill"></i>
+                                    </button>
+                                </div>
+                                <div class="oh-composer-preview d-none">
+                                    <img alt="Превью" />
+                                    <div class="meta">
+                                        <span class="filename"></span>
+                                        <span class="hint">Только одно фото · до 5 МБ</span>
+                                    </div>
+                                    <button type="button" class="remove-btn" title="Убрать" aria-label="Убрать вложение">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

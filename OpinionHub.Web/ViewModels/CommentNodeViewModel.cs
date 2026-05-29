@@ -19,6 +19,15 @@ public class CommentNodeViewModel
     /// <summary>Комментарий написан автором опроса (OP) — для подсветки "от автора".</summary>
     public bool IsByPollAuthor { get; set; }
 
+    /// <summary>UserName автора родительского комментария. null для root.</summary>
+    public string? ParentAuthorUserName { get; set; }
+
+    /// <summary>
+    /// Id корня треда. Для root равен Id. Для reply — Id самого верхнего предка.
+    /// Используется на клиенте: новый ответ вставляется в .replies-list корня, а не parent'а.
+    /// </summary>
+    public Guid RootCommentId { get; set; }
+
     // Контент
     public string Text { get; set; } = string.Empty;
     public string? ImagePath { get; set; }

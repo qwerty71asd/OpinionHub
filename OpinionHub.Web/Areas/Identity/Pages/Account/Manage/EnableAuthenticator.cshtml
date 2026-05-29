@@ -1,0 +1,59 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.EnableAuthenticatorModel
+@{
+    ViewData["Title"] = "Настроить authenticator";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-shield-plus"></i>Настроить authenticator</h2>
+
+<ol class="ps-3 mb-3 small">
+    <li class="mb-1">
+        Установите authenticator-приложение
+        (Google Authenticator / Microsoft Authenticator / Aegis / 1Password / Authy).
+    </li>
+    <li class="mb-1">
+        В приложении выберите «Ввести ключ вручную» и введите код ниже как secret-key.
+        Тип — «По времени» (TOTP), 6 цифр.
+    </li>
+    <li>Введите 6-значный код из приложения для подтверждения.</li>
+</ol>
+
+<div class="mb-3">
+    <label class="form-label small text-secondary mb-1">Ваш секретный ключ</label>
+    <div class="input-group">
+        <input type="text" class="form-control font-monospace user-select-all" value="@Model.SharedKey" readonly />
+        <button type="button" class="btn btn-outline-secondary"
+                onclick="navigator.clipboard.writeText('@Model.SharedKey'.replace(/\s/g,''))"
+                title="Скопировать">
+            <i class="bi bi-clipboard"></i>
+        </button>
+    </div>
+</div>
+
+<details class="mb-3">
+    <summary class="small text-secondary">Альтернатива: otpauth:// URI (для приложений с поддержкой)</summary>
+    <code class="d-block mt-2 small text-break user-select-all">@Model.AuthenticatorUri</code>
+</details>
+
+<form method="post" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+    <div class="mb-3">
+        <label asp-for="Input.Code" class="form-label"></label>
+        <input asp-for="Input.Code" class="form-control text-center oh-code-input"
+               inputmode="numeric" autocomplete="one-time-code" />
+        <span asp-validation-for="Input.Code" class="text-danger small"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100">
+        <i class="bi bi-check2-circle me-1"></i>Подтвердить и включить 2FA
+    </button>
+</form>
+
+<style>
+    .oh-code-input { letter-spacing: .25rem; font-size: 1.1rem; }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

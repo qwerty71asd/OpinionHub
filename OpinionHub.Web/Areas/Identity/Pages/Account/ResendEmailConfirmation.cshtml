@@ -1,0 +1,45 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.ResendEmailConfirmationModel
+@{
+    ViewData["Title"] = "Повторить подтверждение почты";
+}
+
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title justify-content-center text-center mb-2">
+        <i class="bi bi-envelope-arrow-up"></i>@ViewData["Title"]
+    </h1>
+    <p class="oh-page-subtitle text-center mb-3">
+        Укажите email — мы пришлём новый 6-значный код подтверждения.
+    </p>
+
+    <div class="card border-0 shadow-sm oh-card">
+        <div class="card-body p-4">
+            @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+            {
+                <div class="alert alert-info py-2 small mb-3">@Model.StatusMessage</div>
+            }
+
+            <form method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Email" class="form-label"></label>
+                    <input asp-for="Input.Email" class="form-control" autocomplete="email" />
+                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-send me-1"></i>Отправить код
+                </button>
+
+                <div class="mt-3 text-center small text-secondary">
+                    <a asp-page="./Login">Вернуться на вход</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

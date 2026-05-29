@@ -1,0 +1,31 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+    bool IsActive(string p) => string.Equals(currentPage, p, StringComparison.OrdinalIgnoreCase);
+
+    var items = new (string Page, string Icon, string Text)[]
+    {
+        ("/Account/Manage/Index", "bi-person", "Профиль"),
+        ("/Account/Manage/Email", "bi-envelope", "Email"),
+        ("/Account/Manage/ChangePassword", "bi-key", "Пароль"),
+        ("/Account/Manage/TwoFactorAuthentication", "bi-shield-lock", "2FA"),
+        ("/Account/Manage/PersonalData", "bi-database", "Данные"),
+        ("/Account/Manage/ExternalLogins", "bi-box-arrow-in-right", "Соцсети"),
+    };
+}
+<nav class="oh-manage-nav">
+    <ul class="nav nav-pills flex-nowrap oh-manage-nav__list">
+        @foreach (var item in items)
+        {
+            var active = IsActive(item.Page);
+            <li class="nav-item">
+                <a class="nav-link @(active ? "active" : null)"
+                   asp-page="@item.Page"
+                   aria-current="@(active ? "page" : null)"
+                   title="@item.Text">
+                    <i class="bi @item.Icon"></i>
+                    <span class="ms-1 d-none d-sm-inline">@item.Text</span>
+                </a>
+            </li>
+        }
+    </ul>
+</nav>

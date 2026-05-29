@@ -1,0 +1,24 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.PersonalDataModel
+@{
+    ViewData["Title"] = "Личные данные";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-database"></i>Личные данные</h2>
+
+<p class="text-secondary small mb-3">
+    Вы можете скачать копию своих данных или удалить аккаунт без возможности восстановления.
+    Скачивание возвращает JSON со всеми персональными полями (email, username, настройки уведомлений,
+    привязки Telegram и внешних логинов).
+</p>
+
+<div class="d-grid gap-2 d-md-flex flex-md-wrap">
+    <form method="post" asp-page="./DownloadPersonalData" class="d-inline">
+        <button type="submit" class="btn btn-outline-primary">
+            <i class="bi bi-download me-1"></i>Скачать JSON
+        </button>
+    </form>
+    <a asp-page="./DeletePersonalData" class="btn btn-outline-danger">
+        <i class="bi bi-trash3 me-1"></i>Удалить аккаунт
+    </a>
+</div>

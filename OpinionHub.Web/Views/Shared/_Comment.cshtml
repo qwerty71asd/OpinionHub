@@ -1,14 +1,22 @@
 @model OpinionHub.Web.ViewModels.CommentNodeViewModel
+@functions {
+    static string Pluralize(int n)
+    {
+        var mod10 = n % 10;
+        var mod100 = n % 100;
+        if (mod10 == 1 && mod100 != 11) return "ответ";
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "ответа";
+        return "ответов";
+    }
+}
 @{
-    // Depth ограничивает вложенность визуально: после 4 уровня перестаём сдвигать вправо,
-    // чтобы на мобилке дерево не уезжало за экран.
-    var depth = (int)(ViewData["Depth"] ?? 0);
-    var visualDepth = Math.Min(depth, 4);
-    var indentStyle = visualDepth > 0 ? $"margin-left: {visualDepth * 1.5}rem;" : "";
     var initial = string.IsNullOrEmpty(Model.AuthorUserName) ? "?" : Model.AuthorUserName[0].ToString().ToUpper();
+    var repliesCount = Model.Replies?.Count ?? 0;
 }
 
-<div class="comment-node mb-3" data-comment-id="@Model.Id" style="@indentStyle">
+<div class="comment-node mb-3"
+     data-comment-id="@Model.Id"
+     data-author-username="@Model.AuthorUserName">
     <div class="card border-0 shadow-sm">
         <div class="card-body p-3">
             <div class="d-flex gap-3">
@@ -65,7 +73,8 @@
                         {
                             <button type="button"
                                     class="btn btn-sm btn-link text-decoration-none comment-reply-toggle"
-                                    data-comment-id="@Model.Id">
+                                    data-comment-id="@Model.Id"
+                                    data-author-username="@Model.AuthorUserName">
                                 <i class="bi bi-reply me-1"></i>Ответить
                             </button>
                         }
@@ -114,14 +123,32 @@
         </div>
     </div>
 
-    <div class="comment-replies mt-2">
-        @if (Model.Replies is { Count: > 0 })
-        {
-            foreach (var reply in Model.Replies)
+    @* TikTok-flat секция ответов. Контейнер существует всегда — даже если ответов нет:
+       первый ответ JS добавит сюда, а потом будет инкрементить total на кнопках.
+       Кнопки идут СНИЗУ списка: после раскрытия батча они смещаются вниз вместе
+       с ним, и пользователь продолжает читать линейно. *@
+    <div class="comment-replies" data-root-id="@Model.Id" data-batch="3">
+        <div class="replies-list">
+            @if (Model.Replies is { Count: > 0 })
             {
-                var childViewData = new ViewDataDictionary(ViewData) { ["Depth"] = depth + 1 };
-                @await Html.PartialAsync("_Comment", reply, childViewData)
+                foreach (var reply in Model.Replies)
+                {
+                    @await Html.PartialAsync("_CommentReply", reply)
+                }
             }
-        }
+        </div>
+        <div class="comment-replies-actions">
+            <button type="button"
+                    class="btn btn-sm btn-link comment-replies-toggle @(repliesCount == 0 ? "d-none" : "")"
+                    data-shown="0"
+                    data-total="@repliesCount">
+                <i class="bi bi-chevron-down me-1"></i>
+                <span class="label">Показать @repliesCount @Pluralize(repliesCount)</span>
+            </button>
+            <button type="button"
+                    class="btn btn-sm btn-link comment-replies-collapse d-none">
+                <i class="bi bi-chevron-up me-1"></i>Скрыть
+            </button>
+        </div>
     </div>
 </div>

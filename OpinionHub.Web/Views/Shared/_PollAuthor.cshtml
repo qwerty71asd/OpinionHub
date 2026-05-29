@@ -1,0 +1,10 @@
+@model OpinionHub.Web.ViewModels.PollAuthorLinkViewModel
+@if (Model.IsAnonymous || string.IsNullOrEmpty(Model.UserName))
+{
+    <span class="text-secondary">Аноним</span>
+}
+else
+{
+    <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.UserName"
+       class="text-decoration-none fw-semibold">@Model.UserName</a>
+}

@@ -4,6 +4,11 @@
     const MAX_BYTES = 5 * 1024 * 1024;
     const ACCEPTED_MIME = /^image\/(jpeg|png|webp|gif)$/i;
 
+    // SignalR-id текущего соединения. Заполняется в bindSignalR. Шлётся в каждый POST
+    // (коммент/лайк) как X-SignalR-Connection-Id — сервер исключает инициатора из
+    // broadcast'а через Clients.GroupExcept, чтобы избежать дублей у отправителя.
+    let signalrConnectionId = null;
+
     function getToken() {
         const el = document.getElementById('af-token');
         return el ? el.value : '';
@@ -215,6 +220,7 @@
             method: 'POST',
             headers: {
                 'RequestVerificationToken': getToken(),
+                'X-SignalR-Connection-Id': signalrConnectionId || '',
                 'Accept': 'text/html'
             },
             credentials: 'same-origin',
@@ -277,6 +283,94 @@
         };
     }
 
+    // Русская плюрализация для счётчика «N ответов» на кнопке раскрытия.
+    function pluralize(n) {
+        const mod10 = n % 10, mod100 = n % 100;
+        if (mod10 === 1 && mod100 !== 11) return 'ответ';
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'ответа';
+        return 'ответов';
+    }
+
+    // Управляет видимостью и текстом ДВУХ кнопок секции: «Показать ещё N» (toggle)
+    // и «Скрыть» (collapse). data-shown/data-total хранятся на toggle.
+    function updateToggleLabel(section, shown, total) {
+        const showBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
+        const hideBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-collapse');
+        if (!showBtn || !hideBtn) return;
+        showBtn.dataset.shown = String(shown);
+        showBtn.dataset.total = String(total);
+
+        if (total === 0) {
+            showBtn.classList.add('d-none');
+            hideBtn.classList.add('d-none');
+            return;
+        }
+        if (shown === 0) {
+            showBtn.classList.remove('d-none');
+            showBtn.querySelector('.label').textContent = 'Показать ' + total + ' ' + pluralize(total);
+            hideBtn.classList.add('d-none');
+        } else if (shown >= total) {
+            showBtn.classList.add('d-none');
+            hideBtn.classList.remove('d-none');
+        } else {
+            showBtn.classList.remove('d-none');
+            const left = total - shown;
+            showBtn.querySelector('.label').textContent = 'Показать ещё ' + left + ' ' + pluralize(left);
+            hideBtn.classList.remove('d-none');
+        }
+    }
+
+    function collapseReplies(section) {
+        const list = section.querySelector(':scope > .replies-list');
+        const items = list ? list.querySelectorAll(':scope > .reply-item') : [];
+        const total = items.length;
+        items.forEach(el => {
+            el.classList.add('d-none');
+            el.classList.remove('reply-enter');
+            el.style.animationDelay = '';
+        });
+        updateToggleLabel(section, 0, total);
+    }
+
+    function expandNextBatch(section) {
+        const list = section.querySelector(':scope > .replies-list');
+        const items = list ? list.querySelectorAll(':scope > .reply-item') : [];
+        const showBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
+        const batch = parseInt(section.dataset.batch, 10) || 3;
+        let shown = parseInt(showBtn?.dataset.shown, 10) || 0;
+        const total = items.length;
+        if (shown >= total) return;
+
+        const next = Math.min(batch, total - shown);
+        for (let i = shown; i < shown + next; i++) {
+            const el = items[i];
+            el.classList.remove('d-none');
+            el.classList.remove('reply-enter');
+            void el.offsetWidth;
+            el.style.animationDelay = ((i - shown) * 80) + 'ms';
+            el.classList.add('reply-enter');
+        }
+        shown += next;
+        updateToggleLabel(section, shown, total);
+    }
+
+    // TikTok-стиль батч-раскрытие: «Показать ещё N» раскрывает следующие 3,
+    // «Скрыть» сворачивает всё. Обе кнопки делегированы по корню списка.
+    function bindRepliesToggle(root) {
+        root.addEventListener('click', function (e) {
+            const showBtn = e.target.closest('.comment-replies-toggle');
+            const hideBtn = e.target.closest('.comment-replies-collapse');
+            if (!showBtn && !hideBtn) return;
+            const section = (showBtn || hideBtn).closest('.comment-replies');
+            if (!section) return;
+            if (showBtn) {
+                expandNextBatch(section);
+            } else {
+                collapseReplies(section);
+            }
+        });
+    }
+
     function bindLifecycle(root) {
         // Лайки комментариев (делегирование).
         root.addEventListener('click', async function (e) {
@@ -291,6 +385,7 @@
                     method: liked ? 'DELETE' : 'POST',
                     headers: {
                         'RequestVerificationToken': getToken(),
+                        'X-SignalR-Connection-Id': signalrConnectionId || '',
                         'Accept': 'application/json'
                     },
                     credentials: 'same-origin'
@@ -320,21 +415,37 @@
         });
 
         // Тоггл формы ответа + биндинг её композера при первом раскрытии.
+        // Если кликали на reply-item (а не на root), пред-заполняем textarea «@username »
+        // — UX как в TikTok, чтобы видно было кому отвечают.
         root.addEventListener('click', function (e) {
             const btn = e.target.closest('.comment-reply-toggle');
             if (!btn) return;
             const wrap = document.getElementById('reply-form-' + btn.dataset.commentId);
             if (!wrap) return;
+            const willOpen = wrap.classList.contains('d-none');
             wrap.classList.toggle('d-none');
             const form = wrap.querySelector('form.comment-reply-form');
             if (form) bindComposer(form);
-            if (!wrap.classList.contains('d-none')) {
+            if (willOpen) {
                 const ta = wrap.querySelector('.oh-composer-input');
-                if (ta) ta.focus();
+                if (ta) {
+                    // Prefill только если форма пустая И мы отвечаем на reply (не на root).
+                    const isReply = btn.closest('.reply-item') !== null;
+                    const targetUser = btn.dataset.authorUsername;
+                    if (isReply && targetUser && !ta.value.trim()) {
+                        ta.value = '@' + targetUser + ' ';
+                    }
+                    ta.focus();
+                    const len = ta.value.length;
+                    try { ta.setSelectionRange(len, len); } catch { /* ignore */ }
+                }
             }
         });
 
-        // Сабмит ответа.
+        // Сабмит ответа. Независимо от того, на какой уровень отвечаем (root или
+        // reply на reply), сервер возвращает HTML одиночного .reply-item, а мы
+        // вставляем его в .replies-list корня треда. Корень — ближайший .comment-node
+        // от формы; .reply-item не вложен в .comment-node, поэтому closest всегда даёт root.
         root.addEventListener('submit', async function (e) {
             const form = e.target.closest('.comment-reply-form');
             if (!form) return;
@@ -349,11 +460,26 @@
             if (submitBtn) submitBtn.disabled = true;
             try {
                 const html = await postComment(pollId, text, parentId, file);
-                const parentNode = form.closest('.comment-node');
-                const repliesContainer = parentNode?.querySelector(':scope > .comment-replies');
-                if (repliesContainer) {
-                    repliesContainer.insertAdjacentHTML('beforeend', html);
-                    // Новый дочерний коммент уже содержит свою reply-форму — её композер привяжем при раскрытии.
+                const rootNode = form.closest('.comment-node');
+                const section = rootNode?.querySelector(':scope > .comment-replies');
+                const list = section?.querySelector(':scope > .replies-list');
+                if (list) {
+                    list.insertAdjacentHTML('beforeend', html);
+                    // Свежевставленный reply сразу показываем — пользователь только что его
+                    // отправил, прятать его за «Показать ещё» было бы дико.
+                    const newItem = list.lastElementChild;
+                    if (newItem && newItem.classList.contains('reply-item')) {
+                        newItem.classList.remove('d-none');
+                        void newItem.offsetWidth;
+                        newItem.classList.add('reply-enter');
+                    }
+                    // Обновляем счётчики на обеих кнопках: total+1, shown+1 (новый виден).
+                    const toggleBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
+                    if (toggleBtn) {
+                        const total = (parseInt(toggleBtn.dataset.total, 10) || 0) + 1;
+                        const shown = (parseInt(toggleBtn.dataset.shown, 10) || 0) + 1;
+                        updateToggleLabel(section, shown, total);
+                    }
                 }
                 resetComposer(form);
                 form.closest('.comment-reply-form-wrap')?.classList.add('d-none');
@@ -367,8 +493,25 @@
         });
     }
 
+    // Root-композер свёрнут на загрузке: видна только аватарка + строка-плейсхолдер.
+    // Фокус разворачивает, blur пустого без прикреплённого превью — сворачивает обратно.
+    // Reply-формы отсекаются гардом attachScope !== 'root'.
+    function bindCollapse(form) {
+        if (form.dataset.attachScope !== 'root') return;
+        const textarea = form.querySelector('.oh-composer-input');
+        const preview = form.querySelector('.oh-composer-preview');
+        if (!textarea) return;
+        textarea.addEventListener('focus', () => form.classList.remove('is-collapsed'));
+        textarea.addEventListener('blur', () => {
+            const hasText = textarea.value.trim().length > 0;
+            const hasPreview = preview && !preview.classList.contains('d-none');
+            if (!hasText && !hasPreview) form.classList.add('is-collapsed');
+        });
+    }
+
     function bindRootForm(form, pollId, list) {
         bindComposer(form);
+        bindCollapse(form);
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
             const { text, file } = buildPayload(form);
@@ -391,7 +534,63 @@
         });
     }
 
-    window.initPollComments = function (pollId) {
+    // SignalR-handler: вешается на переданное соединение из poll-details.js. Чужие
+    // комменты прилетают через 'commentCreated' и вставляются в DOM. Свои комменты
+    // отфильтровываются на сервере через GroupExcept по X-SignalR-Connection-Id;
+    // дедупликация по data-comment-id остаётся как fallback (если SignalR ещё не
+    // подключился к моменту POST'а или клиент со старым JS).
+    function bindSignalR(connection, pollId, list) {
+        if (!connection) return;
+
+        // Запоминаем connection id для отправки в HTTP-заголовке. На реконнект id
+        // меняется — обновляем.
+        signalrConnectionId = connection.connectionId || null;
+        if (typeof connection.onreconnected === 'function') {
+            connection.onreconnected(function (id) { signalrConnectionId = id || null; });
+        }
+        if (typeof connection.onclose === 'function') {
+            connection.onclose(function () { signalrConnectionId = null; });
+        }
+
+        // Лайки комментариев — broadcast от LikesController. Перезаписываем только
+        // счётчик у нужной кнопки, состояние «лайкнул» — локальное у каждого зрителя.
+        connection.on('commentLikeUpdated', function (data) {
+            if (!data || !data.commentId) return;
+            const btn = list.querySelector('.comment-like-btn[data-comment-id="' + data.commentId + '"]');
+            if (!btn) return;
+            const countSpan = btn.querySelector('.comment-like-count');
+            if (countSpan && typeof data.count === 'number') {
+                countSpan.textContent = data.count;
+            }
+        });
+
+        connection.on('commentCreated', function (payload) {
+            if (!payload || !payload.commentId) return;
+            // Уже на странице (свой коммент через AJAX или старый из изначального HTML).
+            if (document.querySelector('[data-comment-id="' + payload.commentId + '"]')) return;
+
+            if (payload.isReply) {
+                const rootNode = list.querySelector('.comment-node[data-comment-id="' + payload.rootCommentId + '"]');
+                if (!rootNode) return; // root скрыт фильтром или не в DOM
+                const section = rootNode.querySelector(':scope > .comment-replies');
+                const replyList = section?.querySelector(':scope > .replies-list');
+                if (!replyList) return;
+                replyList.insertAdjacentHTML('beforeend', payload.html);
+                // Чужой ответ не раскрываем — только увеличиваем total на toggle-кнопке.
+                // Читатель сам нажмёт «Показать ещё», когда захочет.
+                const showBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
+                const total = (parseInt(showBtn?.dataset.total, 10) || 0) + 1;
+                const shown = parseInt(showBtn?.dataset.shown, 10) || 0;
+                updateToggleLabel(section, shown, total);
+            } else {
+                removeEmptyPlaceholder();
+                list.insertAdjacentHTML('afterbegin', payload.html);
+            }
+            bumpCounter(1);
+        });
+    }
+
+    window.initPollComments = function (pollId, connection) {
         const list = document.getElementById('comments-list');
         if (!list) return;
         list.dataset.pollId = pollId;
@@ -400,6 +599,8 @@
         if (rootForm) bindRootForm(rootForm, pollId, list);
 
         bindLifecycle(list);
+        bindRepliesToggle(list);
+        bindSignalR(connection, pollId, list);
 
         // Делегирование для lightbox — одно на всю секцию комментариев (вместе с превью корневой формы).
         const section = list.closest('.card-body') || document.body;

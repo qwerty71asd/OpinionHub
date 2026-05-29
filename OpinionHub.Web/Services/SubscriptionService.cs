@@ -7,10 +7,12 @@ namespace OpinionHub.Web.Services;
 public class SubscriptionService : ISubscriptionService
 {
     private readonly ApplicationDbContext _db;
+    private readonly ITelegramNotificationService? _telegram;
 
-    public SubscriptionService(ApplicationDbContext db)
+    public SubscriptionService(ApplicationDbContext db, ITelegramNotificationService? telegram = null)
     {
         _db = db;
+        _telegram = telegram; // nullable: бот может быть не настроен в конфиге (TelegramBot:Token пуст)
     }
 
     public Task<int> GetSubscribersCountAsync(string targetUserId) =>
@@ -34,6 +36,14 @@ public class SubscriptionService : ISubscriptionService
             TargetUserId = targetUserId
         });
         await _db.SaveChangesAsync();
+
+        // Telegram-уведомление — fire-and-forget по факту: сервис сам проверит привязку
+        // и флаг NotifyOnNewSubscriber. Если бот не зарегистрирован в DI — _telegram == null.
+        if (_telegram is not null)
+        {
+            await _telegram.NotifyNewSubscriberAsync(subscriberId, targetUserId);
+        }
+
         return true;
     }
 

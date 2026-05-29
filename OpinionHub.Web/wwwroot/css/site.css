@@ -1,252 +1,660 @@
+/* ============================================
+   OpinionHub design tokens
+   Семантические переменные. Любая страница и любой компонент должны
+   опираться на var(--oh-*), а не на хардкод цветов/радиусов/теней.
+   ============================================ */
 :root {
+    /* Радиусы */
+    --oh-radius-sm: 12px;
     --oh-radius: 18px;
+    --oh-radius-lg: 24px;
+    --oh-radius-pill: 999px;
+
+    /* Glass-поверхности (light) */
+    --oh-surface:        rgba(255, 255, 255, 0.85);
+    --oh-surface-soft:   rgba(255, 255, 255, 0.60);
+    --oh-surface-strong: rgba(255, 255, 255, 0.95);
+    --oh-surface-muted:  rgba(255, 255, 255, 0.45);
+    --oh-surface-chart:  rgba(255, 255, 255, 0.55);
+    --oh-surface-input:  rgba(255, 255, 255, 0.55);
+
+    /* Рамки (light) */
+    --oh-border:         rgba(0, 0, 0, 0.06);
+    --oh-border-strong:  rgba(0, 0, 0, 0.12);
+
+    /* Размытие */
+    --oh-blur:           blur(10px);
+    --oh-blur-strong:    blur(14px);
+
+    /* Тени */
+    --oh-shadow-sm:      0 .25rem .75rem rgba(0, 0, 0, 0.05);
+    --oh-shadow-md:      0 .5rem 1rem rgba(0, 0, 0, 0.08);
+    --oh-shadow-hover:   0 .75rem 1.5rem rgba(0, 0, 0, 0.10);
+
+    /* Текст (light) */
+    --oh-text-secondary: rgba(0, 0, 0, 0.55);
+    --oh-text-tertiary:  rgba(0, 0, 0, 0.40);
+
+    /* Цветовые акценты в RGB — для rgba(var(--oh-accent-rgb), .15) */
+    --oh-accent-rgb:     13, 110, 253;
+    --oh-success-rgb:    32, 201, 151;
+    --oh-warning-rgb:    255, 193, 7;
+    --oh-danger-rgb:     220, 53, 69;
+
+    /* Фоновый радиальный градиент страницы (light) */
+    --oh-body-gradient:
+        radial-gradient(1200px 600px at 15% -10%, rgba(var(--oh-accent-rgb), .18), transparent 55%),
+        radial-gradient(900px 500px at 85% 0%, rgba(var(--oh-success-rgb), .16), transparent 55%),
+        radial-gradient(900px 500px at 50% 110%, rgba(var(--oh-warning-rgb), .14), transparent 60%);
+
+    /* Ритм страницы */
+    --oh-page-padding-y:    2.25rem;
+    --oh-page-padding-y-sm: 1.25rem;
+
+    /* Полезная высота для секционных «панелей» (Details: vote/results/comments).
+       Учитываем navbar + footer + compact-hero + поля. dvh — корректно на iOS. */
+    --oh-pane-h: calc(100dvh - 200px);
+
+    /* Скроллбары для .oh-pane__body (light) */
+    --oh-scrollbar-thumb: rgba(0, 0, 0, 0.18);
+    --oh-scrollbar-track: transparent;
 }
 
+html[data-bs-theme="dark"] {
+    /* Glass-поверхности (dark) */
+    --oh-surface:        rgba(30, 30, 30, 0.75);
+    --oh-surface-soft:   rgba(20, 20, 20, 0.55);
+    --oh-surface-strong: rgba(30, 30, 30, 0.92);
+    --oh-surface-muted:  rgba(20, 20, 20, 0.35);
+    --oh-surface-chart:  rgba(20, 20, 20, 0.45);
+    --oh-surface-input:  rgba(0, 0, 0, 0.25);
+
+    /* Рамки (dark) */
+    --oh-border:         rgba(255, 255, 255, 0.08);
+    --oh-border-strong:  rgba(255, 255, 255, 0.15);
+
+    /* Тени (dark) */
+    --oh-shadow-sm:      0 .25rem .75rem rgba(0, 0, 0, 0.30);
+    --oh-shadow-md:      0 .5rem 1rem rgba(0, 0, 0, 0.45);
+    --oh-shadow-hover:   0 .75rem 1.5rem rgba(0, 0, 0, 0.55);
+
+    /* Текст (dark) */
+    --oh-text-secondary: rgba(255, 255, 255, 0.55);
+    --oh-text-tertiary:  rgba(255, 255, 255, 0.40);
+
+    /* Фоновый градиент (dark) */
+    --oh-body-gradient:
+        radial-gradient(1200px 600px at 15% -10%, rgba(var(--oh-accent-rgb), .22), transparent 55%),
+        radial-gradient(900px 500px at 85% 0%, rgba(var(--oh-success-rgb), .18), transparent 55%),
+        radial-gradient(900px 500px at 50% 110%, rgba(var(--oh-warning-rgb), .14), transparent 60%),
+        linear-gradient(180deg, rgba(0, 0, 0, .15), rgba(0, 0, 0, 0));
+
+    --oh-scrollbar-thumb: rgba(255, 255, 255, 0.18);
+    --oh-scrollbar-track: transparent;
+
+    --bs-body-color: #e9ecef;
+}
+
+
+/* ============================================
+   Фон, навбар, hero, footer
+   ============================================ */
 .oh-body {
     min-height: 100vh;
-    background: radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .18), transparent 55%), radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .16), transparent 55%), radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%);
-}
-
-/* Тёмная тема: чуть другой фон */
-html[data-bs-theme="dark"] .oh-body {
-    background: radial-gradient(1200px 600px at 15% -10%, rgba(13, 110, 253, .22), transparent 55%), radial-gradient(900px 500px at 85% 0%, rgba(32, 201, 151, .18), transparent 55%), radial-gradient(900px 500px at 50% 110%, rgba(255, 193, 7, .14), transparent 60%), linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,0));
+    background: var(--oh-body-gradient);
 }
 
 .navbar-blur {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(0,0,0,.06);
-}
-
-html[data-bs-theme="dark"] .navbar-blur {
-    background: rgba(20, 20, 20, 0.65);
-    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: var(--oh-surface);
+    backdrop-filter: var(--oh-blur-strong);
+    border-bottom: 1px solid var(--oh-border);
 }
 
 .brand-dot {
     display: inline-block;
     width: 10px;
     height: 10px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #0d6efd, #20c997);
+    border-radius: var(--oh-radius-pill);
+    background: linear-gradient(135deg, rgb(var(--oh-accent-rgb)), rgb(var(--oh-success-rgb)));
 }
 
 .oh-hero {
-    background: rgba(255,255,255,.60);
-    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: var(--oh-surface-soft);
+    border-bottom: 1px solid var(--oh-border);
 }
 
-html[data-bs-theme="dark"] .oh-hero {
-    background: rgba(20,20,20,.55);
-    border-bottom: 1px solid rgba(255,255,255,.08);
+/* Компактный hero: одна строка на ≥md, минимум вертикального места.
+   Используется на Polls/Details, чтобы основа влезала в 1 экран. */
+.oh-hero--compact {
+    padding: .6rem 0;
+    margin-bottom: .75rem;
 }
-
-/* --- КАРТОЧКИ: GLASSMORPHISM --- */
-.oh-card {
-    border-radius: var(--oh-radius);
-    background: rgba(255, 255, 255, 0.85); /* Полупрозрачный белый */
-    backdrop-filter: blur(10px); /* Размытие фона под карточкой */
+.oh-hero--compact .oh-hero__title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.25;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-
-html[data-bs-theme="dark"] .oh-card {
-    background: rgba(30, 30, 30, 0.75); /* Полупрозрачный тёмный */
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-}
-
-.oh-card .card-body {
-    border-radius: var(--oh-radius);
-}
-
-.progress {
-    height: 10px;
-    border-radius: 999px;
-}
-
-.progress-bar {
-    border-radius: 999px;
-}
-
-.oh-chart-wrap {
-    border-radius: var(--oh-radius);
-    background: rgba(255,255,255,.55);
-    border: 1px solid rgba(0,0,0,.06);
-    padding: 14px;
-}
-
-html[data-bs-theme="dark"] .oh-chart-wrap {
-    background: rgba(20,20,20,.45);
-    border: 1px solid rgba(255,255,255,.08);
+@media (min-width: 768px) {
+    .oh-hero--compact .oh-hero__title { font-size: 1.25rem; }
 }
 
 .footer {
-    background: rgba(255,255,255,.45);
-    border-top: 1px solid rgba(0,0,0,.06);
+    background: var(--oh-surface-muted);
+    border-top: 1px solid var(--oh-border);
 }
 
-html[data-bs-theme="dark"] .footer {
-    background: rgba(20,20,20,.35);
-    border-top: 1px solid rgba(255,255,255,.08);
+/* Иконочная ссылка в navbar (без бургера; текст под d-none d-sm-inline) */
+.oh-nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: .4rem .6rem;
+    border-radius: var(--oh-radius-sm);
+    color: var(--oh-text-secondary);
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
+}
+.oh-nav-link:hover,
+.oh-nav-link.active {
+    color: rgb(var(--oh-accent-rgb));
+    background: rgba(var(--oh-accent-rgb), .08);
+}
+.oh-nav-link i { font-size: 1.05rem; }
+@media (max-width: 575.98px) {
+    .oh-nav-link { padding: .4rem .5rem; }
 }
 
-/* Toggler icon visibility when using custom navbar background */
-.navbar .navbar-toggler {
-    border: 1px solid rgba(0,0,0,.15);
+
+/* ============================================
+   Унифицирующие компоненты страниц
+   .oh-page          — отступы по вертикали
+   .oh-page--narrow  — узкая колонка (Auth, Telegram/Link)
+   .oh-page--wide    — широкая колонка (Home, Details, Create, Profile)
+   .oh-page-title    — заголовок с иконкой bi-* (как в Telegram/Link)
+   .oh-page-subtitle — поясняющий текст
+   .oh-section-title — подзаголовок секции внутри формы / карточки
+   ============================================ */
+.oh-page {
+    padding: var(--oh-page-padding-y) 0 calc(var(--oh-page-padding-y) + .5rem);
 }
 
-html[data-bs-theme="dark"] .navbar .navbar-toggler {
-    border: 1px solid rgba(255,255,255,.20);
+@media (max-width: 575.98px) {
+    .oh-page { padding: var(--oh-page-padding-y-sm) 0; }
 }
 
-html[data-bs-theme="dark"] .navbar-toggler-icon {
-    filter: invert(1);
+.oh-page--narrow {
+    max-width: 720px;
+    margin-inline: auto;
+    padding-inline: 1rem;
 }
 
-/* Auth pages (Login/Register) */
-.auth-wrapper {
-    min-height: calc(100vh - 120px);
+.oh-page--wide {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+}
+
+.oh-page-title {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
+    gap: .55rem;
+    font-weight: 700;
+    margin: 0 0 .5rem;
+    line-height: 1.2;
+}
+.oh-page-title i { color: var(--bs-primary); font-size: 1.05em; }
+
+.oh-page-subtitle {
+    color: var(--oh-text-secondary);
+    margin-bottom: 1.25rem;
 }
 
-.auth-card {
-    width: 100%;
-    max-width: 460px;
-    padding: 1.5rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.75rem;
-    background: var(--bs-body-bg);
-    box-shadow: 0 .5rem 1rem rgba(0,0,0,.05);
+.oh-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
 }
 
+.oh-section-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--oh-text-secondary);
+    margin: 1.25rem 0 .65rem;
+}
+.oh-section-title i { color: var(--bs-primary); }
+.oh-section-title:first-child { margin-top: 0; }
+
+
+/* ============================================
+   Карточки (glassmorphism)
+   ============================================ */
+.oh-card {
+    border-radius: var(--oh-radius);
+    background: var(--oh-surface);
+    backdrop-filter: var(--oh-blur);
+}
+
+html[data-bs-theme="dark"] .oh-card {
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.oh-card > .card-body { border-radius: var(--oh-radius); }
+
+/* Компактный режим карточки — Details/Home/Profile */
+.oh-card--compact > .card-body { padding: 1rem 1.25rem; }
+.oh-card--compact .form-check { padding: .35rem .5rem; }
+
+/* Hover-эффект для feed-карточек (ранее inline-стиль в Home/Index) */
+.oh-card.is-hoverable {
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.oh-card.is-hoverable:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--oh-shadow-hover);
+}
+
+/* Прогресс-бары */
+.progress { height: 10px; border-radius: var(--oh-radius-pill); }
+.progress-bar {
+    border-radius: var(--oh-radius-pill);
+    transition: width .6s cubic-bezier(.22, .61, .36, 1);
+}
+
+/* Компактная строка результата опроса (Details/Results) */
+.oh-stat-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: .65rem;
+    row-gap: .2rem;
+    align-items: center;
+    padding: .35rem 0;
+}
+.oh-stat-row__label {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .92rem;
+}
+.oh-stat-row__label .label-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.oh-stat-row__count {
+    font-size: .82rem;
+    color: var(--oh-text-secondary);
+    white-space: nowrap;
+}
+.oh-stat-row__bar {
+    grid-column: 1 / -1;
+    height: 6px;
+}
+.oh-stat-row__thumb {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: var(--oh-radius-sm);
+    flex: 0 0 auto;
+}
+
+/* Обёртка диаграммы (Details) — высота адаптивная, уплотнено под 1-экранный layout */
+.oh-chart-wrap {
+    border-radius: var(--oh-radius);
+    background: var(--oh-surface-chart);
+    border: 1px solid var(--oh-border);
+    padding: 10px;
+    height: 28vh;
+    min-height: 180px;
+    max-height: 36vh;
+}
 @media (max-width: 576px) {
-    .auth-wrapper {
-        padding: 1.25rem .75rem;
-    }
+    .oh-chart-wrap { height: 30vh; min-height: 170px; }
+}
+@media (min-width: 992px) {
+    .oh-chart-wrap { height: 24vh; min-height: 180px; max-height: 30vh; }
+}
+#chart {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
 
-    .auth-card {
-        padding: 1.25rem;
-        border-radius: 0.5rem;
+/* ============================================
+   Чипы (универсальный мини-бейдж с иконкой) и иконочные кнопки
+   ============================================ */
+.oh-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .65rem;
+    border-radius: var(--oh-radius-pill);
+    font-size: .78rem;
+    font-weight: 600;
+    line-height: 1;
+    background: rgba(var(--oh-accent-rgb), .10);
+    color: rgb(var(--oh-accent-rgb));
+    border: 1px solid rgba(var(--oh-accent-rgb), .18);
+    white-space: nowrap;
+}
+.oh-chip.is-success {
+    background: rgba(var(--oh-success-rgb), .12);
+    color: rgb(var(--oh-success-rgb));
+    border-color: rgba(var(--oh-success-rgb), .22);
+}
+.oh-chip.is-warning {
+    background: rgba(var(--oh-warning-rgb), .15);
+    color: #b58300;
+    border-color: rgba(var(--oh-warning-rgb), .28);
+}
+html[data-bs-theme="dark"] .oh-chip.is-warning {
+    color: rgb(var(--oh-warning-rgb));
+}
+.oh-chip.is-muted {
+    background: var(--oh-surface-muted);
+    color: var(--oh-text-secondary);
+    border-color: var(--oh-border);
+}
+.oh-chip.is-danger {
+    background: rgba(var(--oh-danger-rgb), .12);
+    color: rgb(var(--oh-danger-rgb));
+    border-color: rgba(var(--oh-danger-rgb), .25);
+}
+.oh-chip i { font-size: .9em; }
+
+/* Квадратные кнопки-иконки (используются в hero Details, в action-bar страниц) */
+.oh-icon-btn {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    line-height: 1;
+}
+
+/* ============================================
+   .oh-pane — секция с собственной высотой и внутренним скроллом
+   Используется на Polls/Details: vote / results / comments.
+   ============================================ */
+.oh-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-radius: var(--oh-radius);
+    background: var(--oh-surface);
+    backdrop-filter: var(--oh-blur);
+    border: 1px solid var(--oh-border);
+}
+.oh-pane__head {
+    flex: 0 0 auto;
+    padding: .85rem 1rem .6rem;
+    border-bottom: 1px solid var(--oh-border);
+}
+.oh-pane__head .oh-pane__title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.oh-pane__head .oh-pane__title i { color: var(--bs-primary); }
+.oh-pane__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--oh-scrollbar-thumb) var(--oh-scrollbar-track);
+}
+.oh-pane__body::-webkit-scrollbar { width: 8px; }
+.oh-pane__body::-webkit-scrollbar-track { background: var(--oh-scrollbar-track); }
+.oh-pane__body::-webkit-scrollbar-thumb {
+    background: var(--oh-scrollbar-thumb);
+    border-radius: var(--oh-radius-pill);
+}
+.oh-pane__foot {
+    flex: 0 0 auto;
+    padding: .75rem 1rem;
+    border-top: 1px solid var(--oh-border);
+    background: var(--oh-surface-soft);
+    border-radius: 0 0 var(--oh-radius) var(--oh-radius);
+}
+
+
+/* ============================================
+   Manage — горизонтальная навигация pills с овcкроллом на мобильных
+   ============================================ */
+.oh-manage-nav {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x proximity;
+}
+.oh-manage-nav::-webkit-scrollbar { display: none; }
+
+.oh-manage-nav__list {
+    --bs-nav-pills-link-active-bg: rgba(var(--oh-accent-rgb), .14);
+    --bs-nav-pills-link-active-color: rgb(var(--oh-accent-rgb));
+    gap: .35rem;
+    flex-wrap: nowrap;
+    padding: .25rem 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+}
+.oh-manage-nav__list .nav-link {
+    border-radius: var(--oh-radius-pill);
+    padding: .45rem .9rem;
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--oh-text-secondary);
+    white-space: nowrap;
+    scroll-snap-align: center;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
+}
+.oh-manage-nav__list .nav-link:hover {
+    background: rgba(var(--oh-accent-rgb), .08);
+    color: rgb(var(--oh-accent-rgb));
+}
+.oh-manage-nav__list .nav-link.active {
+    background: rgba(var(--oh-accent-rgb), .14);
+    color: rgb(var(--oh-accent-rgb));
+}
+@media (max-width: 575.98px) {
+    .oh-manage-nav__list .nav-link { padding: .45rem .65rem; }
+}
+
+/* ============================================
+   Polls/Details — миниатюра обложки в hero и плоский вариант голосования
+   ============================================ */
+.oh-hero__cover {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--oh-radius-sm);
+    flex: 0 0 auto;
+}
+@media (max-width: 575.98px) {
+    .oh-hero__cover { width: 40px; height: 40px; }
+}
+
+.oh-vote-option {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .45rem .6rem;
+    border-radius: var(--oh-radius-sm);
+    cursor: pointer;
+    transition: background-color .15s ease;
+    margin: 0;
+}
+.oh-vote-option:hover { background: rgba(var(--oh-accent-rgb), .08); }
+.oh-vote-option .form-check-input { margin: 0; flex: 0 0 auto; }
+.oh-vote-option .vote-thumb {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: var(--oh-radius-sm);
+    flex: 0 0 auto;
+}
+.oh-vote-option .vote-text { min-width: 0; flex: 1 1 auto; }
+
+
+/* ============================================
+   Polls/Details — табы (мобильный) и 3-колоночник (десктоп)
+   На <lg показываются Bootstrap-табы (vote/results/comments).
+   На ≥lg табы скрываются, ВСЕ три .tab-pane показываются как .oh-pane в одну строку.
+   ============================================ */
+.oh-details-tabs.nav-pills { gap: .35rem; }
+.oh-details-tabs .nav-link {
+    border-radius: var(--oh-radius-pill);
+    padding: .4rem 1rem;
+    font-weight: 600;
+    font-size: .88rem;
+    color: var(--oh-text-secondary);
+    background: transparent;
+    transition: background-color .15s ease, color .15s ease;
+}
+.oh-details-tabs .nav-link:hover {
+    background: rgba(var(--oh-accent-rgb), .08);
+}
+.oh-details-tabs .nav-link.active {
+    background: rgba(var(--oh-accent-rgb), .14);
+    color: rgb(var(--oh-accent-rgb));
+}
+
+@media (min-width: 992px) {
+    .oh-details-tabs { display: none !important; }
+    .oh-details-content {
+        display: grid;
+        grid-template-columns: 4fr 5fr 5fr;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    .oh-details-content > .tab-pane {
+        display: flex !important;
+        flex-direction: column;
+        opacity: 1 !important;
+        visibility: visible !important;
+        min-height: 0;
+    }
+    /* Высота колонок Details — 1 экран минус хедер/футер */
+    .oh-details-content .oh-pane { height: var(--oh-pane-h); min-height: 520px; }
+}
+
+/* На <lg табы — каждая панель не занимает фиксированной высоты, скролл нативный страницы.
+   Внутри .oh-pane __body всё ещё прокручивается на больших списках. dvh — учёт URL-бара iOS. */
+@media (max-width: 991.98px) {
+    .oh-details-content .oh-pane {
+        max-height: calc(100dvh - 180px);
+        min-height: 360px;
     }
 }
 
-/* --- СТИЛИЗАЦИЯ ИНПУТОВ И ЭЛЕМЕНТОВ ПОД ТЁМНУЮ ТЕМУ --- */
+
+/* ============================================
+   Лента (poll-masonry) — ранее inline-style в Home/Index
+   ============================================ */
+.poll-masonry {
+    column-count: 1;
+    column-gap: 1.25rem;
+}
+@media (min-width: 768px)  { .poll-masonry { column-count: 2; } }
+@media (min-width: 1200px) { .poll-masonry { column-count: 3; } }
+
+.poll-masonry .card {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1.25rem;
+    break-inside: avoid;
+}
+
+
+/* ============================================
+   Темная тема — переопределения для Bootstrap-инпутов/бордеров
+   ============================================ */
 html[data-bs-theme="dark"] .form-control,
 html[data-bs-theme="dark"] .form-select,
-html[data-bs-theme="dark"] .input-group-text {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #e9ecef;
+html[data-bs-theme="dark"] .input-group-text,
+html[data-bs-theme="dark"] .form-control[type="file"]::file-selector-button {
+    background-color: var(--oh-surface-input) !important;
+    border-color: var(--oh-border-strong) !important;
+    color: #f8f9fa !important;
 }
 
-    html[data-bs-theme="dark"] .form-control:focus,
-    html[data-bs-theme="dark"] .form-select:focus {
-        background-color: rgba(0, 0, 0, 0.4);
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        color: #fff;
-    }
+html[data-bs-theme="dark"] .form-control::placeholder { color: var(--oh-text-secondary); }
+
+html[data-bs-theme="dark"] .form-control:focus,
+html[data-bs-theme="dark"] .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    border-color: rgb(var(--oh-accent-rgb)) !important;
+    box-shadow: 0 0 0 0.25rem rgba(var(--oh-accent-rgb), .25);
+    color: #fff !important;
+}
+
+html[data-bs-theme="dark"] option {
+    background-color: #212529;
+    color: #fff;
+}
 
 html[data-bs-theme="dark"] .list-group-item {
-    background-color: rgba(30, 30, 30, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #e9ecef;
+    background-color: rgba(30, 30, 30, 0.9) !important;
+    border-color: var(--oh-border-strong) !important;
+    color: #e9ecef !important;
+}
+html[data-bs-theme="dark"] .list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-    html[data-bs-theme="dark"] .list-group-item:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-
-/* Приглушаем дефолтные рамки Bootstrap в темной теме */
-html[data-bs-theme="dark"] .border {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+html[data-bs-theme="dark"] .border,
+html[data-bs-theme="dark"] .border-bottom,
+html[data-bs-theme="dark"] .border-top,
+html[data-bs-theme="dark"] .border-start,
+html[data-bs-theme="dark"] .border-end {
+    border-color: var(--oh-border-strong) !important;
 }
 
-html[data-bs-theme="dark"] .border-bottom {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+html[data-bs-theme="dark"] .bg-body-tertiary,
+html[data-bs-theme="dark"] .bg-light,
+html[data-bs-theme="dark"] .bg-body {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    color: #f8f9fa !important;
 }
 
-html[data-bs-theme="dark"] .border-top {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+html[data-bs-theme="dark"] label.btn-outline-secondary {
+    border-color: var(--oh-border-strong) !important;
+    color: #e9ecef !important;
+    background-color: rgba(0, 0, 0, 0.2) !important;
+}
+html[data-bs-theme="dark"] label.btn-outline-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* --- СТИЛИЗАЦИЯ ФОРМ И ЭЛЕМЕНТОВ ДЛЯ ТЕМНОЙ ТЕМЫ --- */
-html[data-bs-theme="dark"] {
-    /* Меняем базовый цвет текста для всего документа на светлый */
-    --bs-body-color: #e9ecef;
-}
 
-    html[data-bs-theme="dark"] .form-control,
-    html[data-bs-theme="dark"] .form-select,
-    html[data-bs-theme="dark"] .input-group-text,
-    html[data-bs-theme="dark"] .form-control[type="file"]::file-selector-button {
-        background-color: rgba(0, 0, 0, 0.25) !important; /* Тёмный полупрозрачный фон */
-        border-color: rgba(255, 255, 255, 0.1) !important; /* Едва заметная рамка */
-        color: #f8f9fa !important; /* Белый текст */
-    }
-
-        /* Стилизация плейсхолдера (подсказки в пустом поле) */
-        html[data-bs-theme="dark"] .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Стилизация поля при фокусе (когда печатаешь) */
-        html[data-bs-theme="dark"] .form-control:focus,
-        html[data-bs-theme="dark"] .form-select:focus {
-            background-color: rgba(0, 0, 0, 0.4) !important;
-            border-color: #0d6efd !important;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            color: #fff !important;
-        }
-
-    /* Выпадающие опции в select */
-    html[data-bs-theme="dark"] option {
-        background-color: #212529; /* Темный фон для опций списка */
-        color: #fff;
-    }
-
-    /* Стилизация списков (результаты поиска пользователей) */
-    html[data-bs-theme="dark"] .list-group-item {
-        background-color: rgba(30, 30, 30, 0.9) !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
-        color: #e9ecef !important;
-    }
-
-        html[data-bs-theme="dark"] .list-group-item:hover {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-        }
-
-    /* Приглушаем дефолтные белые рамки */
-    html[data-bs-theme="dark"] .border,
-    html[data-bs-theme="dark"] .border-bottom,
-    html[data-bs-theme="dark"] .border-top,
-    html[data-bs-theme="dark"] .border-start,
-    html[data-bs-theme="dark"] .border-end {
-        border-color: rgba(255, 255, 255, 0.1) !important;
-    }
-
-    /* Темные карточки-вспомогательные элементы (например, bg-body-tertiary) */
-    html[data-bs-theme="dark"] .bg-body-tertiary,
-    html[data-bs-theme="dark"] .bg-light,
-    html[data-bs-theme="dark"] .bg-body {
-        background-color: rgba(0, 0, 0, 0.15) !important;
-        color: #f8f9fa !important;
-    }
-
-    /* Лейбл для заглавного фото (который с пунктиром) */
-    html[data-bs-theme="dark"] label.btn-outline-secondary {
-        border-color: rgba(255,255,255, 0.2) !important;
-        color: #e9ecef !important;
-        background-color: rgba(0,0,0, 0.2) !important;
-    }
-
-        html[data-bs-theme="dark"] label.btn-outline-secondary:hover {
-            background-color: rgba(255,255,255, 0.05) !important;
-        }
-
-/* --- КОМПОЗЕР КОММЕНТАРИЕВ (pill-shape) --- */
+/* ============================================
+   Композер комментариев (pill-shape)
+   Селекторы критичны для poll-comments.js — не переименовывать.
+   ============================================ */
 .oh-composer {
     display: flex;
     align-items: flex-start;
@@ -259,25 +667,23 @@ html[data-bs-theme="dark"] {
     align-items: center;
     gap: 0.25rem;
     padding: 0.35rem 0.5rem 0.35rem 1.1rem;
-    background: rgba(255,255,255,0.85);
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 999px;
+    background: var(--oh-surface);
+    border: 1px solid var(--oh-border-strong);
+    border-radius: var(--oh-radius-pill);
     transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
     min-height: 48px;
 }
 
-    .oh-composer-pill:focus-within {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15);
-    }
-
-html[data-bs-theme="dark"] .oh-composer-pill {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.10);
+.oh-composer-pill:focus-within {
+    border-color: rgb(var(--oh-accent-rgb));
+    box-shadow: 0 0 0 0.2rem rgba(var(--oh-accent-rgb), .15);
 }
 
+html[data-bs-theme="dark"] .oh-composer-pill {
+    background: rgba(255, 255, 255, 0.04);
+}
 html[data-bs-theme="dark"] .oh-composer-pill:focus-within {
-    background: rgba(255,255,255,0.07);
+    background: rgba(255, 255, 255, 0.07);
 }
 
 .oh-composer-input {
@@ -290,17 +696,10 @@ html[data-bs-theme="dark"] .oh-composer-pill:focus-within {
     line-height: 1.4;
     font-size: 0.95rem;
     color: inherit;
-    max-height: 9rem; /* ~6 строк, потом скроллим */
+    max-height: 9rem;
     overflow-y: auto;
 }
-
-    .oh-composer-input::placeholder {
-        color: rgba(0,0,0,0.4);
-    }
-
-html[data-bs-theme="dark"] .oh-composer-input::placeholder {
-    color: rgba(255,255,255,0.4);
-}
+.oh-composer-input::placeholder { color: var(--oh-text-secondary); }
 
 .oh-composer-icon-btn {
     flex: 0 0 auto;
@@ -308,8 +707,8 @@ html[data-bs-theme="dark"] .oh-composer-input::placeholder {
     height: 36px;
     border: 0;
     background: transparent;
-    color: rgba(0,0,0,0.55);
-    border-radius: 999px;
+    color: var(--oh-text-secondary);
+    border-radius: var(--oh-radius-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -317,29 +716,20 @@ html[data-bs-theme="dark"] .oh-composer-input::placeholder {
     cursor: pointer;
     font-size: 1.05rem;
 }
-
-    .oh-composer-icon-btn:hover {
-        background: rgba(13,110,253,0.10);
-        color: #0d6efd;
-    }
-
-    .oh-composer-icon-btn.has-file {
-        color: #0d6efd;
-    }
-
-html[data-bs-theme="dark"] .oh-composer-icon-btn {
-    color: rgba(255,255,255,0.65);
+.oh-composer-icon-btn:hover {
+    background: rgba(var(--oh-accent-rgb), .10);
+    color: rgb(var(--oh-accent-rgb));
 }
-
-    html[data-bs-theme="dark"] .oh-composer-icon-btn:hover {
-        background: rgba(13,110,253,0.18);
-    }
+.oh-composer-icon-btn.has-file { color: rgb(var(--oh-accent-rgb)); }
+html[data-bs-theme="dark"] .oh-composer-icon-btn:hover {
+    background: rgba(var(--oh-accent-rgb), .18);
+}
 
 .oh-composer-send {
     flex: 0 0 auto;
     width: 38px;
     height: 38px;
-    border-radius: 999px;
+    border-radius: var(--oh-radius-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -351,30 +741,27 @@ html[data-bs-theme="dark"] .oh-composer-icon-btn {
     flex: 0 0 auto;
     width: 40px;
     height: 40px;
-    border-radius: 999px;
+    border-radius: var(--oh-radius-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    background-color: rgba(13,110,253,0.12);
-    color: #0d6efd;
+    background-color: rgba(var(--oh-accent-rgb), .12);
+    color: rgb(var(--oh-accent-rgb));
 }
 
-/* Превью прикреплённого файла под пилюлей */
 .oh-composer-preview {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
     margin-top: 0.5rem;
-    background: rgba(0,0,0,0.03);
-    border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--oh-border);
     border-radius: 14px;
 }
-
 html[data-bs-theme="dark"] .oh-composer-preview {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .oh-composer-preview img {
@@ -390,44 +777,33 @@ html[data-bs-theme="dark"] .oh-composer-preview {
     min-width: 0;
     font-size: 0.875rem;
 }
-
-    .oh-composer-preview .meta .filename {
-        display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-weight: 500;
-    }
-
-    .oh-composer-preview .meta .hint {
-        font-size: 0.78rem;
-        color: rgba(0,0,0,0.55);
-    }
-
-html[data-bs-theme="dark"] .oh-composer-preview .meta .hint {
-    color: rgba(255,255,255,0.55);
+.oh-composer-preview .meta .filename {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+.oh-composer-preview .meta .hint {
+    font-size: 0.78rem;
+    color: var(--oh-text-secondary);
 }
 
 .oh-composer-preview .remove-btn {
     flex: 0 0 auto;
     border: 0;
     background: transparent;
-    color: rgba(0,0,0,0.55);
-    border-radius: 999px;
+    color: var(--oh-text-secondary);
+    border-radius: var(--oh-radius-pill);
     width: 28px;
     height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
-
-    .oh-composer-preview .remove-btn:hover {
-        color: #dc3545;
-        background: rgba(220,53,69,0.10);
-    }
-
-html[data-bs-theme="dark"] .oh-composer-preview .remove-btn {
-    color: rgba(255,255,255,0.65);
+.oh-composer-preview .remove-btn:hover {
+    color: rgb(var(--oh-danger-rgb));
+    background: rgba(var(--oh-danger-rgb), .10);
 }
 
 /* Compact-вариант для reply-форм (без аватара) */
@@ -435,7 +811,6 @@ html[data-bs-theme="dark"] .oh-composer-preview .remove-btn {
     min-height: 42px;
     padding: 0.25rem 0.4rem 0.25rem 0.9rem;
 }
-
 .oh-composer.is-compact .oh-composer-send {
     width: 34px;
     height: 34px;
@@ -444,31 +819,94 @@ html[data-bs-theme="dark"] .oh-composer-preview .remove-btn {
 /* Drag-over подсветка пилюли */
 .oh-composer-pill.is-dragover {
     border-style: dashed !important;
-    border-color: #0d6efd !important;
-    background: rgba(13, 110, 253, 0.08);
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.18);
+    border-color: rgb(var(--oh-accent-rgb)) !important;
+    background: rgba(var(--oh-accent-rgb), .08);
+    box-shadow: 0 0 0 0.2rem rgba(var(--oh-accent-rgb), .18);
 }
-
 html[data-bs-theme="dark"] .oh-composer-pill.is-dragover {
-    background: rgba(13, 110, 253, 0.15);
+    background: rgba(var(--oh-accent-rgb), .15);
 }
 
-/* Кликабельная картинка в комментарии — курсор и hover */
+/* Кликабельная картинка в комментарии */
 .comment-image {
     transition: transform .15s ease-out, box-shadow .15s ease-out;
 }
+.comment-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .15);
+}
+.comment-image:focus-visible {
+    outline: 2px solid rgb(var(--oh-accent-rgb));
+    outline-offset: 2px;
+}
 
-    .comment-image:hover {
-        transform: scale(1.02);
-        box-shadow: 0 .25rem .75rem rgba(0,0,0,.15);
-    }
+/* TikTok-стиль секция ответов под root-комментарием */
+.comment-replies {
+    margin-left: 2.5rem;
+    margin-top: 0.25rem;
+    border-left: 2px solid rgba(var(--oh-accent-rgb), .12);
+    padding-left: 0.75rem;
+}
+html[data-bs-theme="dark"] .comment-replies {
+    border-left-color: rgba(var(--oh-accent-rgb), .28);
+}
 
-    .comment-image:focus-visible {
-        outline: 2px solid #0d6efd;
-        outline-offset: 2px;
-    }
+.comment-replies-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
 
-/* Плавное обновление прогресс-баров в реальном времени (через SignalR) */
-.progress-bar {
-    transition: width .6s cubic-bezier(.22,.61,.36,1);
+.comment-replies-toggle,
+.comment-replies-collapse {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    color: var(--bs-secondary-color);
+}
+.comment-replies-toggle:hover,
+.comment-replies-collapse:hover {
+    color: var(--bs-primary);
+    text-decoration: none;
+}
+
+.reply-item { margin-top: 0.5rem; }
+
+.reply-parent-mention {
+    color: var(--bs-secondary-color);
+    font-size: 0.85rem;
+}
+.reply-parent-mention a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 500;
+}
+.reply-parent-mention a:hover { color: var(--bs-primary); }
+
+@keyframes reply-enter-kf {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.reply-enter {
+    animation: reply-enter-kf 0.28s cubic-bezier(.22, .61, .36, 1) both;
+}
+
+/* Свёрнутый root-композер — однострочная пилюля до фокуса */
+.oh-composer.is-collapsed .oh-composer-pill {
+    min-height: 40px;
+    padding: .25rem .4rem .25rem .9rem;
+}
+.oh-composer.is-collapsed .oh-composer-input {
+    max-height: 24px;
+    overflow: hidden;
+    padding: .25rem 0;
+}
+.oh-composer.is-collapsed .oh-composer-attach,
+.oh-composer.is-collapsed .oh-composer-send,
+.oh-composer.is-collapsed .oh-composer-preview {
+    display: none !important;
 }

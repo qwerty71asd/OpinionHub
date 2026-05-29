@@ -15,6 +15,9 @@ public class CreatePollViewModel
     public AudienceType AudienceType { get; set; } = AudienceType.Everyone;
     public bool CanChangeVote { get; set; }
 
+    /// <summary>Опубликовать опрос «как Аноним» — имя автора скрывается во всех видимых местах.</summary>
+    public bool IsAnonymousAuthor { get; set; }
+
     public DateTime? EndDateUtc { get; set; }
 
     /// <summary>

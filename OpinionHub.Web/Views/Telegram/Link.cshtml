@@ -3,11 +3,11 @@
     ViewData["Title"] = "Привязка Telegram";
 }
 
-<div class="container py-5" style="max-width:720px;">
-    <h1 class="h3 fw-bold mb-3">
-        <i class="bi bi-telegram text-primary me-2"></i>Привязка Telegram
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title">
+        <i class="bi bi-telegram"></i>Привязка Telegram
     </h1>
-    <p class="text-secondary">
+    <p class="oh-page-subtitle">
         Когда кто-то, на кого вы подписаны, опубликует новый опрос — мы пришлём вам сообщение в Telegram.
     </p>
 
@@ -22,7 +22,7 @@
     }
     else if (Model.IsLinked)
     {
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm oh-card">
             <div class="card-body p-4">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <span class="badge bg-success-subtle text-success px-3 py-2">
@@ -33,6 +33,79 @@
                 <p class="mb-4">
                     Ваш Telegram-аккаунт подключён. Вы получаете уведомления о новых опросах от авторов, на которых подписаны.
                 </p>
+
+                <form asp-action="UpdatePreferences" method="post" class="mb-4">
+                    <h3 class="h6 fw-bold mt-3 mb-2 text-secondary">
+                        <i class="bi bi-people me-1"></i>Подписки
+                    </h3>
+                    <div class="form-check form-switch fs-6 mb-1">
+                        <input class="form-check-input" type="checkbox" id="notifyNewSubscriber"
+                               name="notifyOnNewSubscriber" value="true" @(Model.NotifyOnNewSubscriber ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyNewSubscriber">
+                            Кто-то <strong>подписался</strong> на меня
+                        </label>
+                    </div>
+                    <div class="form-check form-switch fs-6 mb-1">
+                        <input class="form-check-input" type="checkbox" id="notifyNewPoll"
+                               name="notifyOnNewPollFromSubscription" value="true" @(Model.NotifyOnNewPollFromSubscription ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyNewPoll">
+                            <strong>Новый опрос</strong> от того, на кого подписан
+                        </label>
+                    </div>
+                    <div class="form-check form-switch fs-6 mb-1 ms-4">
+                        <input class="form-check-input" type="checkbox" id="notifyAnon"
+                               name="notifyAnonymousPolls" value="true" @(Model.NotifyAnonymousPolls ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyAnon">
+                            … и <strong>анонимные</strong> опросы тоже
+                        </label>
+                    </div>
+
+                    <h3 class="h6 fw-bold mt-4 mb-2 text-secondary">
+                        <i class="bi bi-chat-dots me-1"></i>Активность под моим контентом
+                    </h3>
+                    <div class="form-check form-switch fs-6 mb-1">
+                        <input class="form-check-input" type="checkbox" id="notifyCommentOnPoll"
+                               name="notifyOnCommentOnMyPoll" value="true" @(Model.NotifyOnCommentOnMyPoll ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyCommentOnPoll">
+                            Новый <strong>комментарий</strong> к моему опросу
+                        </label>
+                    </div>
+                    <div class="form-check form-switch fs-6 mb-1">
+                        <input class="form-check-input" type="checkbox" id="notifyReply"
+                               name="notifyOnReplyToMyComment" value="true" @(Model.NotifyOnReplyToMyComment ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyReply">
+                            <strong>Ответ</strong> на мой комментарий
+                        </label>
+                    </div>
+                    <div class="form-check form-switch fs-6 mb-1">
+                        <input class="form-check-input" type="checkbox" id="notifyLike"
+                               name="notifyOnLikeMilestone" value="true" @(Model.NotifyOnLikeMilestone ? "checked" : "")>
+                        <label class="form-check-label ms-1" for="notifyLike">
+                            <strong>Лайки</strong> на 10 / 100 / 1000 (без спама на каждый лайк)
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm mt-3">
+                        <i class="bi bi-save me-1"></i>Сохранить настройки
+                    </button>
+                </form>
+
+                <script>
+                    // «Анонимные опросы» — sub-флаг к «новому опросу от подписки». Если родитель
+                    // выключен, дочерний автоматически disabled, чтобы юзер не путался.
+                    (function () {
+                        const parent = document.getElementById('notifyNewPoll');
+                        const child = document.getElementById('notifyAnon');
+                        if (!parent || !child) return;
+                        function sync() {
+                            child.disabled = !parent.checked;
+                            if (!parent.checked) child.checked = false;
+                        }
+                        parent.addEventListener('change', sync);
+                        sync();
+                    })();
+                </script>
+
                 <form asp-action="Unlink" method="post" class="d-inline">
                     <button type="submit" class="btn btn-outline-danger">
                         <i class="bi bi-link-45deg me-1"></i>Отвязать
@@ -43,7 +116,7 @@
     }
     else
     {
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm oh-card">
             <div class="card-body p-4">
                 <h2 class="h5 fw-bold mb-3">Как привязать</h2>
                 <ol class="mb-4">

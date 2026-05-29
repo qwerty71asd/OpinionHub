@@ -11,3 +11,4 @@ bin/
 obj/
 .vs/
 OpinionHub.Web/wwwroot/uploads/
+/OpinionHub.Web/currenttask.md

@@ -1,0 +1,23 @@
+@page
+@model OpinionHub.Web.Areas.Identity.Pages.Account.Manage.Disable2faModel
+@{
+    ViewData["Title"] = "Отключить 2FA";
+}
+
+<h2 class="oh-section-title"><i class="bi bi-shield-slash"></i>Отключить 2FA</h2>
+
+<div class="alert alert-warning small">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Это отключит двухфакторную аутентификацию и сделает ваш аккаунт менее защищённым.
+    Ключ authenticator останется — заново включить 2FA можно сразу. Если хотите перенастроить
+    приложение — используйте «Сбросить authenticator».
+</div>
+
+<form method="post" class="d-flex gap-2 flex-wrap">
+    <a asp-page="./TwoFactorAuthentication" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Отмена
+    </a>
+    <button type="submit" class="btn btn-danger flex-fill">
+        <i class="bi bi-shield-slash me-1"></i>Отключить 2FA
+    </button>
+</form>

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using OpinionHub.Web.Hubs;
 using OpinionHub.Web.Models;
 using OpinionHub.Web.Services;
 using OpinionHub.Web.ViewModels;
@@ -17,17 +19,23 @@ public class CommentsController : Controller
     private readonly ICommentService _comments;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFileStorageService _fileStorage;
+    private readonly IPartialViewRenderer _viewRenderer;
+    private readonly IHubContext<PollHub> _hub;
     private readonly ILogger<CommentsController> _logger;
 
     public CommentsController(
         ICommentService comments,
         UserManager<ApplicationUser> userManager,
         IFileStorageService fileStorage,
+        IPartialViewRenderer viewRenderer,
+        IHubContext<PollHub> hub,
         ILogger<CommentsController> logger)
     {
         _comments = comments;
         _userManager = userManager;
         _fileStorage = fileStorage;
+        _viewRenderer = viewRenderer;
+        _hub = hub;
         _logger = logger;
     }
 
@@ -79,8 +87,40 @@ public class CommentsController : Controller
                 return BadRequest(new { message = ex.Message });
             }
 
-            ViewData["Depth"] = parentCommentId.HasValue ? 1 : 0;
-            return PartialView("_Comment", node);
+            // Root → полный шаблон с секцией ответов; reply → плоский партиал, который
+            // JS вставит в .replies-list корня (root узнаётся через node.RootCommentId).
+            // Рендерим HTML один раз и переиспользуем для HTTP-ответа и SignalR broadcast'а —
+            // чтобы Razor не пробегал дважды.
+            var partialName = parentCommentId.HasValue ? "_CommentReply" : "_Comment";
+            var html = await _viewRenderer.RenderAsync(partialName, node, HttpContext);
+
+            // Broadcast зрителям опроса. Через GroupExcept исключаем самого инициатора
+            // (его id приходит в заголовке X-SignalR-Connection-Id) — он уже вставит
+            // коммент через AJAX-response, дубль не нужен. DOM-дедуп в клиенте остаётся
+            // как fallback для случая, когда заголовок пуст (SignalR ещё не подключился).
+            try
+            {
+                var connId = Request.Headers["X-SignalR-Connection-Id"].ToString();
+                var clients = string.IsNullOrEmpty(connId)
+                    ? _hub.Clients.Group($"poll-{pollId}")
+                    : _hub.Clients.GroupExcept($"poll-{pollId}", new[] { connId });
+
+                await clients.SendAsync("commentCreated", new
+                {
+                    html,
+                    commentId = node.Id,
+                    rootCommentId = node.RootCommentId,
+                    isReply = parentCommentId.HasValue,
+                });
+            }
+            catch (Exception broadcastEx)
+            {
+                _logger.LogWarning(broadcastEx,
+                    "SignalR broadcast failed for comment {CommentId} in poll {PollId}",
+                    node.Id, pollId);
+            }
+
+            return Content(html, "text/html; charset=utf-8");
         }
         catch (Exception ex)
         {

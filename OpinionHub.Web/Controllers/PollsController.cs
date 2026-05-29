@@ -75,12 +75,13 @@ public class PollsController : Controller
                 {
                     id = poll.Id,
                     title = poll.Title,
-                    author = User.Identity?.Name ?? "Аноним",
+                    author = poll.IsAnonymousAuthor ? "Аноним" : (User.Identity?.Name ?? "Аноним"),
+                    isAnonymous = poll.IsAnonymousAuthor,
                     votesCount = 0
                 });
                 var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
 
-                // Если у тебя в модели Poll есть ссылка на картинку (например, poll.ImagePath), 
+                // Если у тебя в модели Poll есть ссылка на картинку (например, poll.ImagePath),
                 // передай её вместо null последним параметром
                 await _telegram.SendPollNotificationAsync(
                     poll.Title,
@@ -177,7 +178,8 @@ public class PollsController : Controller
             {
                 id = poll.Id,
                 title = poll.Title,
-                author = User.Identity?.Name ?? "Аноним",
+                author = poll.IsAnonymousAuthor ? "Аноним" : (User.Identity?.Name ?? "Аноним"),
+                isAnonymous = poll.IsAnonymousAuthor,
                 votesCount = 0
             });
             var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
