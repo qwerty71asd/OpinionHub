@@ -500,12 +500,62 @@
         if (form.dataset.attachScope !== 'root') return;
         const textarea = form.querySelector('.oh-composer-input');
         const preview = form.querySelector('.oh-composer-preview');
+        const pill = form.querySelector('.oh-composer-pill');
+        const attachBtn = form.querySelector('.oh-composer-attach');
+
         if (!textarea) return;
+
+        // Разворачиваем при фокусе
         textarea.addEventListener('focus', () => form.classList.remove('is-collapsed'));
-        textarea.addEventListener('blur', () => {
-            const hasText = textarea.value.trim().length > 0;
-            const hasPreview = preview && !preview.classList.contains('d-none');
-            if (!hasText && !hasPreview) form.classList.add('is-collapsed');
+
+        textarea.addEventListener('blur', (e) => {
+            // Если фокус перешел на другой элемент внутри этой же формы (например, на кнопку отправки)
+            if (e.relatedTarget && form.contains(e.relatedTarget)) return;
+
+            // Задержка решает проблемы с гонкой событий и системными диалогами
+            setTimeout(() => {
+                const hasText = textarea.value.trim().length > 0;
+                const hasPreview = preview && !preview.classList.contains('d-none');
+                const isAttaching = form.dataset.isAttaching === 'true';
+
+                // Сворачиваем форму только если она пустая и мы не находимся в процессе прикрепления файла
+                if (!hasText && !hasPreview && !isAttaching && !form.contains(document.activeElement)) {
+                    form.classList.add('is-collapsed');
+                }
+            }, 150);
+        });
+
+        // Улучшение UX: клик по пустой области "пилюли" фокусирует текстовое поле, сохраняя обводку
+        if (pill) {
+            pill.addEventListener('mousedown', (e) => {
+                if (e.target === pill) {
+                    e.preventDefault(); // Предотвращаем потерю фокуса
+                    textarea.focus();
+                }
+            });
+        }
+
+        // Фикс проблемы со скрепкой: предотвращаем blur при клике
+        if (attachBtn) {
+            attachBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Поле ввода не теряет фокус (сохраняется CSS-выделение)
+                form.dataset.isAttaching = 'true'; // Устанавливаем флаг, что сейчас откроется системное окно
+            });
+        }
+
+        // Возврат из диалогового окна ОС (выбрали файл или нажали Отмена)
+        window.addEventListener('focus', () => {
+            if (form.dataset.isAttaching === 'true') {
+                setTimeout(() => {
+                    delete form.dataset.isAttaching;
+                    const hasText = textarea.value.trim().length > 0;
+                    const hasPreview = preview && !preview.classList.contains('d-none');
+                    // Если пользователь ничего не выбрал и поле пустое — сворачиваем
+                    if (!hasText && !hasPreview && !form.contains(document.activeElement)) {
+                        form.classList.add('is-collapsed');
+                    }
+                }, 300); // Даем время на срабатывание события change у input[type="file"]
+            }
         });
     }
 
