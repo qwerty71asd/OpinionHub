@@ -24,9 +24,9 @@
             <form asp-action="Create" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
 
-                @if (!ViewData.ModelState.IsValid)
+                @if (ViewData.ModelState.TryGetValue(string.Empty, out var modelErrors) && modelErrors.Errors.Any())
                 {
-                    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                 }
 
                 <h6 class="oh-section-title"><i class="bi bi-pencil"></i>Основное</h6>
