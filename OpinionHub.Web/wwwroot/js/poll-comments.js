@@ -14,6 +14,88 @@
         return el ? el.value : '';
     }
 
+    // Экранирование пользовательских строк перед вставкой в template literal.
+    // Защищает от поломки атрибутов кавычками в логине.
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    // Собирает actionbar для комментария на клиенте на основе window.OH (current user)
+    // и data-* атрибутов ноды. Это единственный источник правды — partial с сервера
+    // приходит skeleton'ом без условных кнопок, чтобы один HTML рассылался всем
+    // зрителям группы poll-{pollId}, а не подгонялся под роль инициатора POST'а.
+    function decorateCommentControls(node) {
+        if (!node || node.dataset.decorated === '1') return;
+        if (node.dataset.isDeleted === 'true') { node.dataset.decorated = '1'; return; }
+
+        const slot = node.querySelector(':scope .comment-actions-slot');
+        if (!slot) return;
+
+        const OH = window.OH || {};
+        const isAuth = !!OH.isAuthenticated;
+        const isAdmin = !!OH.isAdmin;
+        const myId = OH.currentUserId || '';
+
+        const cid = node.dataset.commentId || '';
+        const authorId = node.dataset.authorId || '';
+        const authorUser = node.dataset.authorUsername || '';
+        const displayName = node.dataset.displayName || authorUser || '—';
+        const isAuthorDeleted = node.dataset.isAuthorDeleted === 'true';
+        const isOwn = isAuth && myId && authorId && authorId === myId;
+
+        const parts = [];
+
+        if (isAuth) {
+            parts.push(
+                '<button type="button" class="btn btn-sm btn-link text-decoration-none comment-reply-toggle"' +
+                ' data-comment-id="' + escapeHtml(cid) + '"' +
+                ' data-author-username="' + escapeHtml(authorUser) + '">' +
+                '<i class="bi bi-reply me-1"></i>Ответить</button>'
+            );
+        }
+
+        if (isAdmin && !isOwn && !isAuthorDeleted && authorUser && authorId) {
+            parts.push(
+                '<a class="btn btn-sm btn-link text-decoration-none"' +
+                ' href="/Profile/' + encodeURIComponent(authorUser) + '">' +
+                '<i class="bi bi-person me-1"></i>Профиль</a>'
+            );
+            parts.push(
+                '<a class="btn btn-sm btn-link text-warning text-decoration-none"' +
+                ' href="/Admin/Lockout/' + encodeURIComponent(authorId) + '">' +
+                '<i class="bi bi-slash-circle me-1"></i>Забанить</a>'
+            );
+        }
+
+        if (isAdmin) {
+            const token = getToken();
+            const ret = window.location.pathname + window.location.search;
+            parts.push(
+                '<form method="post" action="/Comments/' + encodeURIComponent(cid) + '/AdminDelete" class="d-inline"' +
+                ' onsubmit="return confirm(\'Удалить комментарий?\');">' +
+                '<input type="hidden" name="__RequestVerificationToken" value="' + escapeHtml(token) + '">' +
+                '<input type="hidden" name="returnUrl" value="' + escapeHtml(ret) + '">' +
+                '<button type="submit" class="btn btn-sm btn-link text-danger text-decoration-none">' +
+                '<i class="bi bi-trash me-1"></i>Удалить</button></form>'
+            );
+        } else if (isAuth && !isOwn) {
+            parts.push(
+                '<button type="button" class="btn btn-sm btn-link text-warning text-decoration-none"' +
+                ' data-bs-toggle="modal" data-bs-target="#reportModal"' +
+                ' data-target-type="Comment"' +
+                ' data-target-key="' + escapeHtml(cid) + '"' +
+                ' data-target-label="Комментарий от ' + escapeHtml(displayName) + '"' +
+                ' title="Пожаловаться на комментарий">' +
+                '<i class="bi bi-flag me-1"></i>Пожаловаться</button>'
+            );
+        }
+
+        slot.innerHTML = parts.join('');
+        node.dataset.decorated = '1';
+    }
+
     function bumpCounter(delta) {
         const el = document.getElementById('comments-total');
         if (!el) return;
@@ -29,7 +111,11 @@
 
     function autoGrow(textarea) {
         textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 144) + 'px'; // 9rem ~= 144px при 16px корне
+        const sh = textarea.scrollHeight;
+        textarea.style.height = Math.min(sh, 144) + 'px'; // 9rem ~= 144px при 16px корне
+        // Показываем нативный скроллбар только когда контент реально превышает max-height,
+        // иначе в пустом поле в Windows-Chrome видны фейковые «стрелки» от overflow-y:auto.
+        textarea.classList.toggle('is-overflow', sh > 144);
     }
 
     function bindAutoGrow(textarea) {
@@ -472,6 +558,7 @@
                         newItem.classList.remove('d-none');
                         void newItem.offsetWidth;
                         newItem.classList.add('reply-enter');
+                        decorateCommentControls(newItem);
                     }
                     // Обновляем счётчики на обеих кнопках: total+1, shown+1 (новый виден).
                     const toggleBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
@@ -573,6 +660,7 @@
                 const html = await postComment(pollId, text, null, file);
                 removeEmptyPlaceholder();
                 list.insertAdjacentHTML('afterbegin', html);
+                decorateCommentControls(list.firstElementChild);
                 resetComposer(form);
                 bumpCounter(1);
             } catch (err) {
@@ -626,6 +714,7 @@
                 const replyList = section?.querySelector(':scope > .replies-list');
                 if (!replyList) return;
                 replyList.insertAdjacentHTML('beforeend', payload.html);
+                decorateCommentControls(replyList.lastElementChild);
                 // Чужой ответ не раскрываем — только увеличиваем total на toggle-кнопке.
                 // Читатель сам нажмёт «Показать ещё», когда захочет.
                 const showBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
@@ -635,8 +724,40 @@
             } else {
                 removeEmptyPlaceholder();
                 list.insertAdjacentHTML('afterbegin', payload.html);
+                decorateCommentControls(list.firstElementChild);
             }
             bumpCounter(1);
+        });
+
+        // Удаление коммента админом: серверный broadcast приходит всем включая инициатора.
+        // Reply снимаем точечно (.reply-item), root — целиком вместе с поддеревом ответов
+        // (на сервере уже hard-delete каскадом, у нас только DOM-чистка).
+        connection.on('commentDeleted', function (payload) {
+            if (!payload || !payload.commentId) return;
+            const cid = String(payload.commentId);
+            if (payload.isReply) {
+                const reply = list.querySelector('.reply-item[data-comment-id="' + cid + '"]');
+                if (reply) {
+                    // Поправляем счётчик ответов в секции корня.
+                    const section = reply.closest('.comment-replies');
+                    reply.remove();
+                    if (section) {
+                        const showBtn = section.querySelector(':scope > .comment-replies-actions > .comment-replies-toggle');
+                        const total = Math.max(0, (parseInt(showBtn?.dataset.total, 10) || 0) - 1);
+                        const visibleCount = section.querySelectorAll(':scope > .replies-list > .reply-item:not(.d-none)').length;
+                        updateToggleLabel(section, visibleCount, total);
+                    }
+                    bumpCounter(-1);
+                }
+            } else {
+                const node = list.querySelector('.comment-node[data-comment-id="' + cid + '"]');
+                if (node) {
+                    // Вместе с рутом исчезают и все его reply (DOM-поддерево).
+                    const replyCount = node.querySelectorAll('.reply-item').length;
+                    node.remove();
+                    bumpCounter(-(1 + replyCount));
+                }
+            }
         });
     }
 
@@ -651,6 +772,9 @@
         bindLifecycle(list);
         bindRepliesToggle(list);
         bindSignalR(connection, pollId, list);
+
+        // Все уже отрендеренные комментарии и ответы декорируем под текущего зрителя.
+        list.querySelectorAll('.comment-node, .reply-item').forEach(decorateCommentControls);
 
         // Делегирование для lightbox — одно на всю секцию комментариев (вместе с превью корневой формы).
         const section = list.closest('.card-body') || document.body;

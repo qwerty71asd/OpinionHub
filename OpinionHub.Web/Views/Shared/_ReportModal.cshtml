@@ -1,0 +1,81 @@
+@*
+    Универсальный модал жалоб. Подключается один раз на страницу. Кнопки на странице
+    открывают его с data-* атрибутами: data-target-type, data-target-key, data-target-label.
+    Кнопка обычно выглядит как:
+    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#reportModal"
+            data-target-type="Comment" data-target-key="@c.Id" data-target-label="@c.AuthorUserName: ...">
+        Пожаловаться
+    </button>
+*@
+
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-controller="Reports" asp-action="Create">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TargetType" id="reportTargetType" value="Poll" />
+                <input type="hidden" name="TargetKey" id="reportTargetKey" value="" />
+                <input type="hidden" name="ReturnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportModalLabel">Пожаловаться</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="reportTargetLabel">—</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Причина</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="Reason" id="reasonSpam" value="Spam" checked />
+                            <label class="form-check-label" for="reasonSpam">Спам</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="Reason" id="reasonAbuse" value="Abuse" />
+                            <label class="form-check-label" for="reasonAbuse">Оскорбления / травля</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="Reason" id="reasonNsfw" value="Nsfw" />
+                            <label class="form-check-label" for="reasonNsfw">NSFW / неприемлемый контент</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="Reason" id="reasonMisinfo" value="Misinformation" />
+                            <label class="form-check-label" for="reasonMisinfo">Дезинформация / обман</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="Reason" id="reasonOther" value="Other" />
+                            <label class="form-check-label" for="reasonOther">Другое</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="reportComment" class="form-label fw-semibold">Комментарий <span class="text-muted small">(необязательно, до 500 символов)</span></label>
+                        <textarea class="form-control" id="reportComment" name="Comment" rows="3" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-flag-fill me-1"></i>Отправить жалобу</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const modal = document.getElementById('reportModal');
+        if (!modal) return;
+        modal.addEventListener('show.bs.modal', function (e) {
+            const trigger = e.relatedTarget;
+            if (!trigger) return;
+            document.getElementById('reportTargetType').value = trigger.getAttribute('data-target-type') || 'Poll';
+            document.getElementById('reportTargetKey').value = trigger.getAttribute('data-target-key') || '';
+            document.getElementById('reportTargetLabel').textContent = trigger.getAttribute('data-target-label') || '';
+            // сброс формы
+            document.getElementById('reportComment').value = '';
+            const first = modal.querySelector('input[name="Reason"]');
+            if (first) first.checked = true;
+        });
+    })();
+</script>

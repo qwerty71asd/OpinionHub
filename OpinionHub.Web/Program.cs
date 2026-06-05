@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpinionHub.Web.Background;
 using OpinionHub.Web.Data;
 using OpinionHub.Web.Hubs;
+using OpinionHub.Web.Middleware;
 using OpinionHub.Web.Models;
 using System.Net;
 using OpinionHub.Web.Services;
@@ -51,7 +52,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<OpinionHub.Web.Filters.DomainExceptionFilter>();
+});
 builder.Services.AddSingleton<IValidationAttributeAdapterProvider, RuValidationAttributeAdapterProvider>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
@@ -61,9 +65,14 @@ builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IUserDeletionService, UserDeletionService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IAppealService, AppealService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IPartialViewRenderer, PartialViewRenderer>();
 builder.Services.AddHostedService<PollLifecycleHostedService>();
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddHostedService<QueuedHostedService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ConfigurableEmailSender>();
 var botToken = builder.Configuration["TelegramBot:Token"];
 if (!string.IsNullOrEmpty(botToken))
@@ -131,6 +140,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseAuthentication();
+// Между Authentication и Authorization — чтобы User.Identity уже был восстановлен из cookie,
+// но мы могли разлогинить забаненного раньше, чем доступ дойдёт до контроллеров.
+app.UseMiddleware<BannedUserMiddleware>();
 app.UseAuthorization();
 
 app.MapControllerRoute(

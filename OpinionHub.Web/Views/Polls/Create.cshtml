@@ -598,5 +598,30 @@
             audienceSelect?.addEventListener('change', setBoxVisibility);
             setBoxVisibility();
         })();
+
+        // --- 6. SUBMIT GUARD: защита от двойного клика + сохранение PublishNow ---
+        (function () {
+            const form = document.querySelector('form');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                if (e.defaultPrevented) return;
+
+                // У формы две кнопки submit (PublishNow=true / false).
+                // disabled на кнопке убирает её value из POST — поэтому копируем выбор
+                // в hidden input ДО дизейбла.
+                const submitter = e.submitter;
+                if (submitter && submitter.name === 'PublishNow') {
+                    let hidden = form.querySelector('input[type="hidden"][name="PublishNow"]');
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'PublishNow';
+                        form.appendChild(hidden);
+                    }
+                    hidden.value = submitter.value;
+                }
+                form.querySelectorAll('button[type="submit"]').forEach(b => b.disabled = true);
+            });
+        })();
     </script>
 }

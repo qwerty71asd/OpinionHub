@@ -135,4 +135,68 @@ public class CommentsController : Controller
                 new { message = "Внутренняя ошибка сервера при сохранении комментария.", details = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Админ-удаление комментария. Используется как из админки, так и кнопкой «Удалить»
+    /// прямо со страницы опроса. Абсолютный маршрут, чтобы не наследовать api/polls/{pollId}/...
+    /// </summary>
+    [HttpPost("/Comments/{id:guid}/AdminDelete")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> AdminDelete(Guid id, string? returnUrl, [FromServices] IReportService reports)
+    {
+        var adminId = _userManager.GetUserId(User)!;
+
+        try
+        {
+            var result = await _comments.AdminDeleteAsync(id, adminId);
+            if (!result.Success)
+            {
+                TempData["AdminError"] = result.ErrorMessage ?? "Не удалось удалить комментарий.";
+            }
+            else
+            {
+                TempData["AdminMessage"] = result.WasRoot
+                    ? $"Корневой комментарий удалён, дочерних: {result.RemovedDescendantIds.Count}."
+                    : "Комментарий удалён.";
+
+                // Резолвим все pending-жалобы на этот коммент (если кто-то жаловался) — чтоб не висели.
+                await reports.ResolveByTargetAsync(ReportTargetType.Comment, id.ToString(), adminId, "Комментарий удалён администратором");
+
+                // SignalR: оповещаем зрителей о удалении — клиент уберёт ноды из DOM без перезагрузки.
+                try
+                {
+                    var payload = new
+                    {
+                        commentId = id,
+                        rootCommentId = result.RootCommentId,
+                        isReply = !result.WasRoot,
+                        removedDescendants = result.RemovedDescendantIds,
+                    };
+                    await _hub.Clients.Group($"poll-{result.PollId}").SendAsync("commentDeleted", payload);
+                }
+                catch (Exception broadcastEx)
+                {
+                    _logger.LogWarning(broadcastEx, "SignalR broadcast for commentDeleted failed (comment={CommentId})", id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AdminDelete failed for comment {CommentId}", id);
+            TempData["AdminError"] = "Ошибка при удалении комментария.";
+        }
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        // Без returnUrl — пытаемся вернуться на страницу опроса, если знаем его id.
+        var referer = Request.Headers["Referer"].ToString();
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refUri) &&
+            string.Equals(refUri.Host, Request.Host.Host, StringComparison.OrdinalIgnoreCase))
+        {
+            return Redirect(referer);
+        }
+        return RedirectToAction("Index", "Home");
+    }
 }

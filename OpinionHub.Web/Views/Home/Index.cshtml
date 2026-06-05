@@ -41,7 +41,7 @@
                         <div class="mt-auto">
                             <div class="d-flex align-items-center mb-2 small">
                                 @await Html.PartialAsync("_PollAuthor",
-                                    new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath))
+                                    new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath, poll.Author?.IsDeleted ?? false))
                             </div>
 
                             <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id"

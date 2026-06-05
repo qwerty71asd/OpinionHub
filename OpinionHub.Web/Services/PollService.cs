@@ -1,9 +1,14 @@
 using System.Text;
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.InkML;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using OpinionHub.Web.Background;
 using OpinionHub.Web.Data;
+using OpinionHub.Web.Hubs;
 using OpinionHub.Web.Models;
+using OpinionHub.Web.Services.Exceptions;
 using OpinionHub.Web.ViewModels;
 
 namespace OpinionHub.Web.Services;
@@ -13,17 +18,23 @@ public class PollService : IPollService
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PollService> _logger;
     private readonly IFileStorageService _fileStorage;
+    private readonly IHubContext<PollHub> _hub;
+    private readonly IBackgroundTaskQueue _taskQueue;
     private readonly ITelegramNotificationService? _telegram;
 
     public PollService(
         ApplicationDbContext db,
         ILogger<PollService> logger,
         IFileStorageService fileStorage,
+        IHubContext<PollHub> hub,
+        IBackgroundTaskQueue taskQueue,
         ITelegramNotificationService? telegram = null)
     {
         _db = db;
         _logger = logger;
         _fileStorage = fileStorage;
+        _hub = hub;
+        _taskQueue = taskQueue;
         // ITelegramNotificationService регистрируется только если задан TelegramBot:Token —
         // в окружении без бота PollService должен продолжать работать без рассылки.
         _telegram = telegram;
@@ -117,22 +128,35 @@ public class PollService : IPollService
         await _db.SaveChangesAsync();
 
         // Сразу опубликованный опрос — единственная развилка в этом методе, где опрос становится Active.
+        // Telegram уводим в фон: NotifySubscribersOfNewPollAsync делает сеть и не должен блокировать ответ.
+        // Резолвим сервис ИЗ scope в лямбде — нельзя захватывать _telegram, он Transient над Scoped DbContext.
         if (poll.Status == PollStatus.Active && _telegram is not null)
-            await _telegram.NotifySubscribersOfNewPollAsync(poll.Id);
+        {
+            var pollIdLocal = poll.Id;
+            await _taskQueue.QueueAsync((sp, ct) =>
+                sp.GetRequiredService<ITelegramNotificationService>().NotifySubscribersOfNewPollAsync(pollIdLocal));
+        }
 
         return poll;
     }
 
     public async Task PublishAsync(Guid pollId, string authorId)
     {
-        var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId && p.AuthorId == authorId);
-        if (poll is null) throw new InvalidOperationException("Опрос не найден.");
+        // Сначала ищем без AuthorId-фильтра — нужно различать 404 и 403, чтобы клиент
+        // получил осмысленный статус через DomainExceptionFilter.
+        var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId);
+        if (poll is null) throw new EntityNotFoundException("Опрос не найден.");
+        if (poll.AuthorId != authorId) throw new ForbiddenAccessException("Публиковать опрос может только его автор.");
         if (poll.Status != PollStatus.Draft) throw new InvalidOperationException("Публикуются только черновики.");
         poll.Status = PollStatus.Active;
         await _db.SaveChangesAsync();
 
         if (_telegram is not null)
-            await _telegram.NotifySubscribersOfNewPollAsync(poll.Id);
+        {
+            var pollIdLocal = poll.Id;
+            await _taskQueue.QueueAsync((sp, ct) =>
+                sp.GetRequiredService<ITelegramNotificationService>().NotifySubscribersOfNewPollAsync(pollIdLocal));
+        }
     }
 
     public async Task VoteAsync(Guid pollId, string userId, IReadOnlyCollection<Guid> optionIds)
@@ -188,7 +212,15 @@ public class PollService : IPollService
             Details = $"Options={string.Join(',', optionIds)}"
         });
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // Уникальный индекс (PollId, VoterAccountId) сработал — параллельная вкладка успела раньше.
+            throw new InvalidOperationException("Ваш голос уже учтён.");
+        }
         _logger.LogInformation("Vote saved for poll {PollId} by {UserId}", pollId, userId);
     }
 
@@ -346,10 +378,10 @@ public class PollService : IPollService
         var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId);
 
         if (poll is null)
-            throw new InvalidOperationException("Опрос не найден.");
+            throw new EntityNotFoundException("Опрос не найден.");
 
         if (poll.AuthorId != userId)
-            throw new UnauthorizedAccessException("Удалять опросы может только создатель.");
+            throw new ForbiddenAccessException("Удалять опросы может только создатель.");
 
         if (poll.IsDeleted)
             return;
@@ -368,6 +400,28 @@ public class PollService : IPollService
 
         await _db.SaveChangesAsync();
     }
+
+    public async Task AdminSoftDeleteAsync(Guid pollId, string adminId)
+    {
+        var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId);
+        if (poll is null)
+            throw new EntityNotFoundException("Опрос не найден.");
+        if (poll.IsDeleted)
+            return;
+
+        poll.IsDeleted = true;
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EventType = "POLL_DELETED_BY_ADMIN",
+            PollId = pollId,
+            UserId = adminId,
+            Details = $"Админ-удаление опроса: {poll.Title}"
+        });
+
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<List<Poll>> GetUserPollsAsync(string userId)
     {
         return await _db.Polls
@@ -389,6 +443,30 @@ public class PollService : IPollService
         return await q
             .OrderByDescending(p => p.CreatedAtUtc)
             .ToListAsync();
+    }
+
+    public async Task PublishBroadcastAsync(Guid pollId, string? signalrConnectionId)
+    {
+        // Минимум полей для карточки в ленте — лишний раз не тянем Options/Votes.
+        var payload = await _db.Polls
+            .Where(p => p.Id == pollId)
+            .Select(p => new
+            {
+                id = p.Id,
+                title = p.Title,
+                author = p.IsAnonymousAuthor ? "Аноним" : ((p.Author != null ? p.Author.UserName : null) ?? "Аноним"),
+                isAnonymous = p.IsAnonymousAuthor,
+                votesCount = 0,
+            })
+            .FirstOrDefaultAsync();
+        if (payload is null) return;
+
+        // AllExcept не требует группировки на хабе — шлём всем подключённым кроме инициатора,
+        // чтобы во вкладке, откуда опрос создали, не было дубля карточки (её отрисует server-render).
+        if (!string.IsNullOrEmpty(signalrConnectionId))
+            await _hub.Clients.AllExcept(signalrConnectionId).SendAsync("ReceiveNewPoll", payload);
+        else
+            await _hub.Clients.All.SendAsync("ReceiveNewPoll", payload);
     }
 
 }

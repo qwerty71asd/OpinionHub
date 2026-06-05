@@ -1,0 +1,71 @@
+@model OpinionHub.Web.ViewModels.AppealCreateVm
+
+@{
+    ViewData["Title"] = "Подача апелляции";
+    var banReason = ViewBag.BanReason as string;
+    var hasPending = (ViewBag.HasPending as bool?) ?? false;
+}
+
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title justify-content-center text-center mb-2">
+        <i class="bi bi-megaphone"></i>@ViewData["Title"]
+    </h1>
+    <p class="oh-page-subtitle text-center mb-3">Опишите ситуацию — администратор рассмотрит вашу апелляцию.</p>
+
+    <div class="card border-0 shadow-sm oh-card">
+        <div class="card-body p-4">
+            @if (hasPending)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-1"></i>Ваша предыдущая апелляция ещё рассматривается. Дождитесь решения.
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(banReason))
+                {
+                    <div class="mb-3">
+                        <div class="text-secondary small mb-1">Причина бана:</div>
+                        <div class="border rounded p-2 bg-light"><strong>@banReason</strong></div>
+                    </div>
+                }
+
+                <form method="post" asp-action="Create">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="UserName" class="form-label fw-semibold"></label>
+                        <input asp-for="UserName" class="form-control" autocomplete="username" />
+                        <span asp-validation-for="UserName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold"></label>
+                        <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                        <div class="form-text">Пароль нужен только чтобы подтвердить, что вы — владелец аккаунта.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Message" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Message" class="form-control" rows="6" maxlength="2000"
+                                  placeholder="Опишите, почему вы считаете блокировку ошибочной..."></textarea>
+                        <span asp-validation-for="Message" class="text-danger small"></span>
+                        <div class="form-text">От 50 до 2000 символов.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="bi bi-send me-1"></i>Отправить апелляцию
+                        </button>
+                        <a asp-page="/Account/Lockout" asp-area="Identity" asp-route-userName="@Model.UserName" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+

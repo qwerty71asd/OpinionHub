@@ -24,4 +24,16 @@ public class Comment
     public ICollection<Comment> Replies { get; set; } = new List<Comment>();
 
     public ICollection<CommentLike> Likes { get; set; } = new List<CommentLike>();
+
+    /// <summary>
+    /// Soft-delete для админ-удаления. Запись остаётся, чтобы дочки-ответы
+    /// сохраняли ссылку на parent через @mention. UI показывает «Комментарий удалён»
+    /// без имени автора.
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
+    public DateTime? DeletedAtUtc { get; set; }
+
+    /// <summary>Id админа, выполнившего удаление. Без FK-навигации, как BannedById.</summary>
+    public string? DeletedById { get; set; }
 }

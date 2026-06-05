@@ -21,6 +21,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PollLike> PollLikes => Set<PollLike>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<Appeal> Appeals => Set<Appeal>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -157,5 +159,55 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<CommentLike>()
             .HasIndex(cl => cl.CommentId);
+
+        // === Moderation: Reports / Appeals ===
+
+        builder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Report>()
+            .HasIndex(r => new { r.Status, r.CreatedAtUtc });
+
+        builder.Entity<Report>()
+            .HasIndex(r => new { r.TargetType, r.TargetKey });
+
+        builder.Entity<Report>()
+            .Property(r => r.TargetKey)
+            .HasMaxLength(64);
+
+        builder.Entity<Report>()
+            .Property(r => r.Comment)
+            .HasMaxLength(500);
+
+        builder.Entity<Report>()
+            .Property(r => r.AdminNote)
+            .HasMaxLength(1000);
+
+        builder.Entity<Appeal>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Appeal>()
+            .HasIndex(a => new { a.Status, a.CreatedAtUtc });
+
+        builder.Entity<Appeal>()
+            .HasIndex(a => a.UserId);
+
+        builder.Entity<Appeal>()
+            .Property(a => a.Message)
+            .HasMaxLength(2000);
+
+        builder.Entity<Appeal>()
+            .Property(a => a.AdminResponse)
+            .HasMaxLength(1000);
+
+        builder.Entity<Appeal>()
+            .Property(a => a.BanReasonSnapshot)
+            .HasMaxLength(1000);
     }
 }

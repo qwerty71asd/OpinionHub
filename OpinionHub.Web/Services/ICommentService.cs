@@ -19,4 +19,10 @@ public interface ICommentService
     /// или parent из другого опроса.
     /// </summary>
     Task<CommentNodeViewModel> CreateAsync(Guid pollId, string authorId, string text, Guid? parentCommentId, string? imagePath = null);
+
+    /// <summary>
+    /// Админ-удаление. Корневой комментарий → soft-delete + каскадный hard-delete потомков;
+    /// reply → только soft-delete на узле (дочки остаются).
+    /// </summary>
+    Task<CommentDeleteResult> AdminDeleteAsync(Guid commentId, string adminId);
 }

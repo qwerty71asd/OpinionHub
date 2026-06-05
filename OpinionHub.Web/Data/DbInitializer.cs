@@ -60,13 +60,18 @@ public static class DbInitializer
             throw new InvalidOperationException($"Ошибка инициализации БД. {hint}", ex);
         }
 
-        // Seed ролей
+        // Seed ролей.
+        // Раньше было три роли: Participant, Author, Admin. Прав у Participant и Author не отличалось,
+        // поэтому они объединены в одну роль User. Старые роли мигрируем: всем, у кого они есть,
+        // выдаём User и удаляем устаревшие записи.
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        foreach (var role in new[] { "Participant", "Author", "Admin" })
+        foreach (var role in Roles.All)
         {
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
+
+        await MigrateLegacyRolesAsync(scope.ServiceProvider, logger);
 
         // Seed admin-пользователя (удобно для первого входа в админку).
         // Управляется через appsettings: SeedAdmin:Enabled/UserName/Email/Password.
@@ -110,9 +115,9 @@ public static class DbInitializer
             }
 
             // На всякий случай выдаём роль Admin.
-            if (!await userManager.IsInRoleAsync(user, "Admin"))
+            if (!await userManager.IsInRoleAsync(user, Roles.Admin))
             {
-                var addRole = await userManager.AddToRoleAsync(user, "Admin");
+                var addRole = await userManager.AddToRoleAsync(user, Roles.Admin);
                 if (!addRole.Succeeded)
                 {
                     var errors = string.Join("; ", addRole.Errors.Select(e => $"{e.Code}: {e.Description}"));
@@ -129,6 +134,42 @@ public static class DbInitializer
             logger.LogWarning(ex, "SeedAdmin: ошибка при создании/настройке admin-пользователя.");
         }
     }
+    private static async Task MigrateLegacyRolesAsync(IServiceProvider sp, ILogger logger)
+    {
+        var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = sp.GetRequiredService<RoleManager<IdentityRole>>();
+
+        foreach (var legacy in new[] { "Participant", "Author" })
+        {
+            if (!await roleManager.RoleExistsAsync(legacy))
+                continue;
+
+            var holders = await userManager.GetUsersInRoleAsync(legacy);
+            foreach (var u in holders)
+            {
+                if (!await userManager.IsInRoleAsync(u, Roles.User))
+                    await userManager.AddToRoleAsync(u, Roles.User);
+                await userManager.RemoveFromRoleAsync(u, legacy);
+            }
+
+            var role = await roleManager.FindByNameAsync(legacy);
+            if (role is not null)
+            {
+                var del = await roleManager.DeleteAsync(role);
+                if (!del.Succeeded)
+                {
+                    logger.LogWarning("MigrateLegacyRoles: не удалось удалить роль '{Role}': {Errors}",
+                        legacy, string.Join("; ", del.Errors.Select(e => e.Description)));
+                }
+                else
+                {
+                    logger.LogInformation("MigrateLegacyRoles: роль '{Role}' удалена, пользователи перенесены в '{NewRole}'.",
+                        legacy, Roles.User);
+                }
+            }
+        }
+    }
+
     private static string BuildDbHint(Exception ex, string connectionString)
     {
         // Достаём Host/Port из строки подключения, чтобы подсказка была максимально конкретной.

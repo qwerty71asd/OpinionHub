@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OpinionHub.Web.Models;
+using OpinionHub.Web.Services;
 
 namespace OpinionHub.Web.Areas.Identity.Pages.Account.Manage;
 
@@ -12,15 +13,18 @@ public class DeletePersonalDataModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IUserDeletionService _userDeletion;
     private readonly ILogger<DeletePersonalDataModel> _logger;
 
     public DeletePersonalDataModel(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
+        IUserDeletionService userDeletion,
         ILogger<DeletePersonalDataModel> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _userDeletion = userDeletion;
         _logger = logger;
     }
 
@@ -67,18 +71,17 @@ public class DeletePersonalDataModel : PageModel
         }
 
         var userId = await _userManager.GetUserIdAsync(user);
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
+        var result = await _userDeletion.SoftDeleteAsync(userId);
+        if (!result.Success)
         {
-            foreach (var e in result.Errors)
-                ModelState.AddModelError(string.Empty, e.Description);
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Не удалось удалить аккаунт.");
             return Page();
         }
 
+        // SoftDeleteAsync уже обновил SecurityStamp, но SignOut явно подчищает текущую cookie.
         await _signInManager.SignOutAsync();
-        _logger.LogInformation("Пользователь {UserId} удалил свой аккаунт.", userId);
 
-        TempData["StatusMessage"] = "Ваш аккаунт удалён.";
+        TempData["StatusMessage"] = "Ваш аккаунт удалён. Ваши опросы и комментарии остались как «Удалённый аккаунт».";
         return Redirect("~/");
     }
 }

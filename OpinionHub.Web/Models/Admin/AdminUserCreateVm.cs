@@ -30,8 +30,9 @@ public class AdminUserCreateVm
     [Display(Name = "Повтор пароля")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
-    [Display(Name = "Роли")]
     public List<string> AvailableRoles { get; set; } = new();
 
-    public List<string> SelectedRoles { get; set; } = new();
+    /// <summary>Одна выбранная роль (radio). См. комментарий в <see cref="AdminUserEditVm.SelectedRole"/>.</summary>
+    [Display(Name = "Роль")]
+    public string? SelectedRole { get; set; }
 }

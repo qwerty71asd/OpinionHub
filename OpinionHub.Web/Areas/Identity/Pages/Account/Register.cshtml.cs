@@ -74,8 +74,8 @@ public class RegisterModel : PageModel
         var result = await _userManager.CreateAsync(user, Input.Password);
         if (result.Succeeded)
         {
-            // По умолчанию все — участники.
-            await _userManager.AddToRoleAsync(user, "Participant");
+            // По умолчанию все — обычные пользователи.
+            await _userManager.AddToRoleAsync(user, Models.Roles.User);
 
             // Отправляем код подтверждения на почту
             var code = EmailConfirmationCode.Generate6Digits();

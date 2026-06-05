@@ -89,10 +89,18 @@ public class LoginModel : PageModel
         // Если аккаунт заблокирован — передаем данные и уходим на страницу Lockout
         if (result.IsLockedOut)
         {
-            // Мы уже пытались найти пользователя выше (resolvedUser). 
+            // Мы уже пытались найти пользователя выше (resolvedUser).
             // Если он все еще null, пробуем найти его по Login (это может быть и ник, и почта).
             resolvedUser ??= await _userManager.FindByNameAsync(Input.Login)
                              ?? await _userManager.FindByEmailAsync(Input.Login);
+
+            // Удалённый аккаунт сидит с LockoutEnd=31.12.9999 — страница Lockout с такой датой
+            // выглядит сломанно. Показываем явное сообщение прямо в форме логина.
+            if (resolvedUser?.IsDeleted == true)
+            {
+                ModelState.AddModelError(string.Empty, "Этот аккаунт был удалён. Восстановление невозможно.");
+                return Page();
+            }
 
             if (resolvedUser?.LockoutEnd != null)
             {

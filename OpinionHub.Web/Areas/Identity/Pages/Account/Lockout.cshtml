@@ -20,13 +20,50 @@
             }
             @if (!string.IsNullOrWhiteSpace(Model.LockoutUntilText))
             {
-                <div class="mb-3"><span class="text-secondary">Срок блокировки:</span> <strong>@Model.LockoutUntilText</strong></div>
+                <div class="mb-2"><span class="text-secondary">Срок блокировки:</span> <strong>@Model.LockoutUntilText</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.BannedAtLocalText))
+            {
+                <div class="mb-2"><span class="text-secondary">Заблокирован:</span> <strong>@Model.BannedAtLocalText</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.BanReason))
+            {
+                <div class="mb-3 text-start">
+                    <div class="text-secondary mb-1">Причина:</div>
+                    <div class="border rounded p-2 bg-light"><strong>@Model.BanReason</strong></div>
+                </div>
             }
 
-            <p class="text-secondary small mb-4">
-                Если вы считаете, что это ошибка — обратитесь к администратору.
+            @if (!string.IsNullOrWhiteSpace(Model.AppealMessage))
+            {
+                <div class="alert alert-success small mb-3">@Model.AppealMessage</div>
+            }
+
+            <p class="text-secondary small mb-3">
+                Если вы считаете, что это ошибка — подайте апелляцию администраторам.
             </p>
 
+            @if (!string.IsNullOrWhiteSpace(Model.AppealForUserName))
+            {
+                if (Model.HasPendingAppeal)
+                {
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-megaphone me-1"></i>Апелляция уже отправлена, ожидайте решения.
+                    </div>
+                }
+                else
+                {
+                    <a asp-controller="Appeals" asp-action="Create" asp-route-userName="@Model.AppealForUserName"
+                       asp-area=""
+                       class="btn btn-warning btn-lg w-100 mb-2">
+                        <i class="bi bi-megaphone me-1"></i>Подать апелляцию
+                    </a>
+                }
+            }
+
+            <a href="/" class="btn btn-primary btn-lg w-100 mb-2">
+                <i class="bi bi-house me-1"></i>На главную
+            </a>
             <a asp-page="./Login" class="btn btn-outline-secondary btn-lg w-100">
                 <i class="bi bi-arrow-left me-1"></i>Вернуться на вход
             </a>
