@@ -15,4 +15,8 @@ public class AdminLockoutVm
     [Range(1, 525600)] // до года в минутах
     [Display(Name = "Минут (если не бессрочно)")]
     public int Minutes { get; set; } = 60;
+
+    [Display(Name = "Причина блокировки")]
+    [StringLength(1000, ErrorMessage = "Причина не должна превышать 1000 символов")]
+    public string? Reason { get; set; }
 }

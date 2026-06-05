@@ -15,11 +15,13 @@ public class SubscriptionService : ISubscriptionService
         _telegram = telegram; // nullable: бот может быть не настроен в конфиге (TelegramBot:Token пуст)
     }
 
+    // Удалённые аккаунты исключаем из всех публичных списков и счётчиков подписок,
+    // чтобы они не светились в /Subscribers и /Subscriptions и не накручивали статистику.
     public Task<int> GetSubscribersCountAsync(string targetUserId) =>
-        _db.UserSubscriptions.CountAsync(s => s.TargetUserId == targetUserId);
+        _db.UserSubscriptions.CountAsync(s => s.TargetUserId == targetUserId && !s.Subscriber.IsDeleted);
 
     public Task<int> GetSubscriptionsCountAsync(string subscriberId) =>
-        _db.UserSubscriptions.CountAsync(s => s.SubscriberId == subscriberId);
+        _db.UserSubscriptions.CountAsync(s => s.SubscriberId == subscriberId && !s.TargetUser.IsDeleted);
 
     public Task<bool> IsSubscribedAsync(string subscriberId, string targetUserId) =>
         _db.UserSubscriptions.AnyAsync(s =>
@@ -27,14 +29,14 @@ public class SubscriptionService : ISubscriptionService
 
     public Task<List<ApplicationUser>> GetSubscribersAsync(string targetUserId) =>
         _db.UserSubscriptions
-            .Where(s => s.TargetUserId == targetUserId)
+            .Where(s => s.TargetUserId == targetUserId && !s.Subscriber.IsDeleted)
             .OrderByDescending(s => s.CreatedAtUtc)
             .Select(s => s.Subscriber)
             .ToListAsync();
 
     public Task<List<ApplicationUser>> GetSubscriptionsAsync(string subscriberId) =>
         _db.UserSubscriptions
-            .Where(s => s.SubscriberId == subscriberId)
+            .Where(s => s.SubscriberId == subscriberId && !s.TargetUser.IsDeleted)
             .OrderByDescending(s => s.CreatedAtUtc)
             .Select(s => s.TargetUser)
             .ToListAsync();

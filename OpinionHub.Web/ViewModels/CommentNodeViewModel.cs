@@ -16,11 +16,15 @@ public class CommentNodeViewModel
     // Автор комментария
     public string AuthorId { get; set; } = string.Empty;
     public string AuthorUserName { get; set; } = string.Empty;
+    /// <summary>Аккаунт автора был soft-удалён. В UI рисуем «Удалённый аккаунт» без ссылки на профиль.</summary>
+    public bool IsAuthorDeleted { get; set; }
     /// <summary>Комментарий написан автором опроса (OP) — для подсветки "от автора".</summary>
     public bool IsByPollAuthor { get; set; }
 
     /// <summary>UserName автора родительского комментария. null для root.</summary>
     public string? ParentAuthorUserName { get; set; }
+    /// <summary>Аккаунт автора родительского коммента удалён — @mention рисуем без ссылки.</summary>
+    public bool IsParentAuthorDeleted { get; set; }
 
     /// <summary>
     /// Id корня треда. Для root равен Id. Для reply — Id самого верхнего предка.
@@ -42,4 +46,10 @@ public class CommentNodeViewModel
 
     // Дерево ответов
     public List<CommentNodeViewModel> Replies { get; set; } = new();
+
+    /// <summary>Сам комментарий помечен админом как удалённый (soft-delete). UI рисует заглушку «Комментарий удалён».</summary>
+    public bool IsDeleted { get; set; }
+
+    /// <summary>Родительский комментарий помечен как удалённый — у reply в @mention пишем «удалённый комментарий».</summary>
+    public bool IsParentDeleted { get; set; }
 }

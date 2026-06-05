@@ -61,6 +61,23 @@ public class ApplicationUser : IdentityUser
     [PersonalData]
     public bool NotifyOnLikeMilestone { get; set; } = false;
 
+    /// <summary>
+    /// Soft-delete: запись остаётся в БД (комментарии/голоса/опросы продолжают ссылаться на этот Id),
+    /// но в UI пользователь отображается как «Удалённый аккаунт», логин невозможен,
+    /// личные данные очищены. Выставляется в AdminController.Delete.
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    /// <summary>Причина бана, которую заполняет админ в форме блокировки. Отображается на странице Lockout.</summary>
+    public string? BanReason { get; set; }
+
+    public DateTimeOffset? BannedAt { get; set; }
+
+    /// <summary>Id админа, выдавшего бан. Без навигации — чтобы не добавлять ещё одну FK-связь на ту же таблицу.</summary>
+    public string? BannedById { get; set; }
+
     public ICollection<Poll> CreatedPolls { get; set; } = new List<Poll>();
 
     public ICollection<UserSubscription> Subscriptions { get; set; } = new List<UserSubscription>();

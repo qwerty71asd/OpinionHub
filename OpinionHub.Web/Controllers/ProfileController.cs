@@ -37,6 +37,9 @@ public class ProfileController : Controller
         var target = await _userManager.FindByNameAsync(userName);
         if (target is null) return NotFound();
 
+        if (target.IsDeleted)
+            return View("Deleted");
+
         var viewerId = _userManager.GetUserId(User);
         var isOwn = viewerId is not null && viewerId == target.Id;
 
@@ -121,8 +124,10 @@ public class ProfileController : Controller
         });
     }
 
-    private async Task<ApplicationUser?> ResolveAsync(string userName) =>
-        string.IsNullOrWhiteSpace(userName)
-            ? null
-            : await _userManager.FindByNameAsync(userName);
+    private async Task<ApplicationUser?> ResolveAsync(string userName)
+    {
+        if (string.IsNullOrWhiteSpace(userName)) return null;
+        var u = await _userManager.FindByNameAsync(userName);
+        return u is null || u.IsDeleted ? null : u;
+    }
 }

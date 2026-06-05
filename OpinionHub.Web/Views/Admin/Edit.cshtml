@@ -58,18 +58,20 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-bold mb-3">Роли</label>
+                            <label class="form-label fw-bold mb-3">Роль</label>
                             <div class="p-3 border rounded" style="background: rgba(128,128,128,0.05);">
                                 <div class="d-flex flex-wrap gap-4">
                                     @foreach (var r in Model.AvailableRoles)
                                     {
-                                        var checkedNow = Model.SelectedRoles.Contains(r);
+                                        var checkedNow = string.Equals(Model.SelectedRole, r, StringComparison.OrdinalIgnoreCase);
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@r" id="role_@r" @(checkedNow ? "checked" : "") />
+                                            <input class="form-check-input" type="radio" name="SelectedRole" value="@r" id="role_@r" @(checkedNow ? "checked" : "") />
                                             <label class="form-check-label text-body" for="role_@r">@r</label>
                                         </div>
                                     }
                                 </div>
+                                <span asp-validation-for="SelectedRole" class="text-danger small d-block mt-2"></span>
+                                <div class="form-text">У пользователя может быть только одна роль одновременно.</div>
                             </div>
                         </div>
 
@@ -88,6 +90,130 @@
                         </div>
                     </form>
 
+                </div>
+            </div>
+
+            @* === Подробная админка: контент пользователя === *@
+            <div class="card border-0 shadow-sm oh-card mt-4">
+                <div class="card-body p-4">
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-polls" type="button" role="tab">
+                                <i class="bi bi-list-check me-1"></i>Опросы
+                                <span class="badge bg-secondary ms-1">@Model.RecentPolls.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-comments" type="button" role="tab">
+                                <i class="bi bi-chat-left-text me-1"></i>Комментарии
+                                <span class="badge bg-secondary ms-1">@Model.RecentComments.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-against" type="button" role="tab">
+                                <i class="bi bi-flag me-1"></i>Жалобы на пользователя
+                                <span class="badge bg-warning text-dark ms-1">@Model.ReportsAgainstCount</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-polls" role="tabpanel">
+                            @if (Model.RecentPolls.Count == 0)
+                            {
+                                <p class="text-muted small mb-0">У пользователя нет публичных опросов (анонимные не отображаются).</p>
+                            }
+                            else
+                            {
+                                <div class="vstack gap-2">
+                                    @foreach (var p in Model.RecentPolls)
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center border rounded p-2 @(p.IsDeleted ? "opacity-50" : "")">
+                                            <div class="me-2" style="min-width:0;">
+                                                <div class="fw-semibold text-truncate">@p.Title</div>
+                                                <div class="text-muted small">
+                                                    @p.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @p.Status
+                                                    @if (p.IsDeleted)
+                                                    {
+                                                        <span class="badge bg-danger-subtle text-danger ms-1">удалён</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <a class="btn btn-sm btn-outline-primary" asp-controller="Polls" asp-action="Details" asp-route-id="@p.Id" target="_blank">Открыть</a>
+                                                @if (!p.IsDeleted)
+                                                {
+                                                    <form asp-controller="Polls" asp-action="AdminDelete" asp-route-id="@p.Id" method="post"
+                                                          onsubmit="return confirm('Удалить опрос как админ?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-comments" role="tabpanel">
+                            @if (Model.RecentComments.Count == 0)
+                            {
+                                <p class="text-muted small mb-0">У пользователя нет комментариев под публичными опросами.</p>
+                            }
+                            else
+                            {
+                                <div class="vstack gap-2">
+                                    @foreach (var c in Model.RecentComments)
+                                    {
+                                        <div class="border rounded p-2 @(c.IsDeleted ? "opacity-50" : "")">
+                                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                                <div class="me-2 small" style="min-width:0;">
+                                                    <div style="white-space:pre-wrap; word-break:break-word;">
+                                                        @if (c.IsDeleted)
+                                                        {
+                                                            <em class="text-muted">Комментарий удалён</em>
+                                                        }
+                                                        else
+                                                        {
+                                                            @(c.Text.Length > 200 ? c.Text.Substring(0, 200) + "…" : c.Text)
+                                                        }
+                                                    </div>
+                                                    <div class="text-muted mt-1">
+                                                        @c.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ·
+                                                        под опросом
+                                                        <a asp-controller="Polls" asp-action="Details" asp-route-id="@c.PollId" target="_blank">@c.PollTitle</a>
+                                                    </div>
+                                                </div>
+                                                @if (!c.IsDeleted)
+                                                {
+                                                    <form asp-controller="Comments" asp-action="AdminDelete" asp-route-id="@c.Id" method="post"
+                                                          onsubmit="return confirm('Удалить комментарий как админ?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-against" role="tabpanel">
+                            @if (Model.ReportsAgainstCount == 0)
+                            {
+                                <p class="text-muted small mb-0">На пользователя нет жалоб.</p>
+                            }
+                            else
+                            {
+                                <p class="small mb-0">
+                                    Подано жалоб: <strong>@Model.ReportsAgainstCount</strong>.
+                                    Подробности — на странице <a asp-action="Reports">«Жалобы»</a>.
+                                </p>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

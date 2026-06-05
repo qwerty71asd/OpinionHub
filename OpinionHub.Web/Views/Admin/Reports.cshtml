@@ -1,0 +1,233 @@
+@model OpinionHub.Web.Models.Admin.AdminReportsVm
+@using OpinionHub.Web.Models
+
+@{
+    ViewData["Title"] = "Жалобы";
+    ViewData["AdminSidebarActive"] = "reports";
+    ViewData["AdminCountAll"] = Model.CountAll;
+    ViewData["AdminCountActive"] = Model.CountActive;
+    ViewData["AdminCountBanned"] = Model.CountBanned;
+    ViewData["AdminCountDeleted"] = Model.CountDeleted;
+    ViewData["AdminCountAdmin"] = Model.CountAdmin;
+    ViewData["AdminPendingReports"] = Model.PendingReports;
+    ViewData["AdminPendingAppeals"] = Model.PendingAppeals;
+
+    string ReasonLabel(ReportReason r) => r switch
+    {
+        ReportReason.Spam => "Спам",
+        ReportReason.Abuse => "Оскорбления",
+        ReportReason.Nsfw => "NSFW",
+        ReportReason.Misinformation => "Дезинформация",
+        ReportReason.Other => "Другое",
+        _ => r.ToString()
+    };
+    string TargetTypeLabel(ReportTargetType t) => t switch
+    {
+        ReportTargetType.Poll => "Опрос",
+        ReportTargetType.Comment => "Комментарий",
+        ReportTargetType.User => "Профиль",
+        _ => t.ToString()
+    };
+    string TargetIcon(ReportTargetType t) => t switch
+    {
+        ReportTargetType.Poll => "bi-bar-chart-line",
+        ReportTargetType.Comment => "bi-chat-left-text",
+        ReportTargetType.User => "bi-person",
+        _ => "bi-question"
+    };
+}
+
+<div class="oh-hero py-4 py-md-5 mb-4">
+    <div class="container">
+        <h1 class="display-6 mb-1">Жалобы</h1>
+        <p class="text-secondary mb-0">Рассмотрение пользовательских жалоб на опросы, комментарии и профили.</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    @if (TempData["AdminMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
+    {
+        <div class="alert alert-success shadow-sm">@ok</div>
+    }
+    @if (TempData["AdminError"] is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-danger shadow-sm">@err</div>
+    }
+
+    <div class="row g-4">
+        <aside class="col-12 col-lg-3">
+            <partial name="_AdminSidebar" />
+        </aside>
+
+        <div class="col-12 col-lg-9">
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pending" type="button" role="tab">
+                        <i class="bi bi-hourglass-split me-1"></i>Нерассмотренные
+                        <span class="badge bg-warning text-dark ms-1">@Model.Pending.Count</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reviewed" type="button" role="tab">
+                        <i class="bi bi-check2-all me-1"></i>Рассмотренные
+                        <span class="badge bg-secondary ms-1">@Model.Reviewed.Count</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                @foreach (var pane in new[] { ("pending", Model.Pending, true), ("reviewed", Model.Reviewed, false) })
+                {
+                    <div class="tab-pane fade @(pane.Item3 ? "show active" : "")" id="tab-@pane.Item1" role="tabpanel">
+                        @if (pane.Item2.Count == 0)
+                        {
+                            <div class="card border-0 shadow-sm oh-card">
+                                <div class="card-body text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    <p class="mb-0">Жалоб нет.</p>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="vstack gap-3">
+                                @foreach (var r in pane.Item2)
+                                {
+                                    <div class="card border-0 shadow-sm oh-card">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                                <div>
+                                                    <span class="badge bg-primary-subtle text-primary">
+                                                        <i class="bi @TargetIcon(r.TargetType) me-1"></i>@TargetTypeLabel(r.TargetType)
+                                                    </span>
+                                                    <span class="badge bg-warning-subtle text-warning ms-1">@ReasonLabel(r.Reason)</span>
+                                                    <span class="text-muted small ms-2">@r.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    От:
+                                                    @if (!string.IsNullOrEmpty(r.ReporterUserName))
+                                                    {
+                                                        <a asp-controller="Profile" asp-action="Index" asp-route-userName="@r.ReporterUserName">@r.ReporterUserName</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>—</span>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <div class="fw-semibold">
+                                                    @if (!string.IsNullOrEmpty(r.TargetUrl))
+                                                    {
+                                                        <a href="@r.TargetUrl" target="_blank">@r.TargetLabel</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@r.TargetLabel</span>
+                                                    }
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(r.TargetAuthorUserName))
+                                                {
+                                                    <div class="text-muted small">
+                                                        Автор цели:
+                                                        <a asp-controller="Profile" asp-action="Index" asp-route-userName="@r.TargetAuthorUserName">@r.TargetAuthorUserName</a>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(r.Comment))
+                                            {
+                                                <div class="bg-light rounded p-2 small mb-2" style="white-space:pre-wrap;">
+                                                    <i class="bi bi-quote me-1"></i>@r.Comment
+                                                </div>
+                                            }
+
+                                            @if (r.Status == ReportStatus.Reviewed)
+                                            {
+                                                <div class="text-muted small mt-2">
+                                                    <i class="bi bi-check2-all me-1"></i>Рассмотрено
+                                                    @if (r.ReviewedAtUtc is not null)
+                                                    {
+                                                        <span> @r.ReviewedAtUtc.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(r.ReviewedByUserName))
+                                                    {
+                                                        <span> · @r.ReviewedByUserName</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(r.AdminNote))
+                                                    {
+                                                        <div class="bg-light rounded p-2 mt-1" style="white-space:pre-wrap;">@r.AdminNote</div>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    <form asp-action="MarkReportReviewed" asp-route-id="@r.Id" method="post" class="d-flex flex-grow-1 gap-2">
+                                                        @Html.AntiForgeryToken()
+                                                        <input class="form-control form-control-sm" name="adminNote" placeholder="Заметка (необязательно)" maxlength="1000" />
+                                                        <button type="submit" class="btn btn-sm btn-success">
+                                                            <i class="bi bi-check2 me-1"></i>Рассмотреть
+                                                        </button>
+                                                    </form>
+
+                                                    @if (!string.IsNullOrEmpty(r.TargetAuthorId) && r.TargetType != ReportTargetType.User)
+                                                    {
+                                                        <a class="btn btn-sm btn-outline-warning" asp-action="Lockout" asp-route-id="@r.TargetAuthorId">
+                                                            <i class="bi bi-slash-circle me-1"></i>Забанить автора
+                                                        </a>
+                                                    }
+                                                    else if (r.TargetType == ReportTargetType.User && !string.IsNullOrEmpty(r.TargetAuthorId))
+                                                    {
+                                                        <a class="btn btn-sm btn-outline-warning" asp-action="Lockout" asp-route-id="@r.TargetAuthorId">
+                                                            <i class="bi bi-slash-circle me-1"></i>Забанить
+                                                        </a>
+                                                    }
+
+                                                    @if (r.TargetType == ReportTargetType.Comment && Guid.TryParse(r.TargetKey, out var commentTargetId))
+                                                    {
+                                                        <form method="post" action="/Comments/@commentTargetId/AdminDelete" class="d-inline"
+                                                              onsubmit="return confirm('Удалить комментарий? Это закроет все жалобы на него.');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="returnUrl" value="@Url.Action("Reports")" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-trash me-1"></i>Удалить комментарий
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    else if (r.TargetType == ReportTargetType.Poll && Guid.TryParse(r.TargetKey, out var pollTargetId))
+                                                    {
+                                                        <form method="post" asp-controller="Polls" asp-action="AdminDelete" asp-route-id="@pollTargetId" class="d-inline"
+                                                              onsubmit="return confirm('Удалить опрос? Это закроет все жалобы на него.');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="returnUrl" value="@Url.Action("Reports")" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-trash me-1"></i>Удалить опрос
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    else if (r.TargetType == ReportTargetType.User && !string.IsNullOrEmpty(r.TargetKey))
+                                                    {
+                                                        <form method="post" asp-controller="Admin" asp-action="Delete" asp-route-id="@r.TargetKey" class="d-inline"
+                                                              onsubmit="return confirm('Удалить пользователя? Это закроет все жалобы на него.');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="returnUrl" value="@Url.Action("Reports")" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-trash me-1"></i>Удалить пользователя
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

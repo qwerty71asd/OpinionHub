@@ -1,40 +1,73 @@
 @model OpinionHub.Web.Models.Admin.AdminLockoutVm
 
 @{
-    ViewData["Title"] = "Блокировка";
+    ViewData["Title"] = "Блокировка пользователя";
 }
 
-<h2 class="mb-3">Блокировка пользователя</h2>
-
-<div class="mb-3 text-muted">Пользователь: <b>@Model.UserName</b></div>
-
-<form method="post" class="row g-3" style="max-width: 700px;">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-
-    <div class="col-12">
-        <div asp-validation-summary="All" class="text-danger"></div>
-    </div>
-
-    <div class="col-12">
-        <div class="form-check">
-            <input asp-for="Permanent" class="form-check-input" />
-            <label asp-for="Permanent" class="form-check-label"></label>
-        </div>
-        <div class="text-muted" style="font-size: 0.9rem">
-            Если включено — блокировка будет до <code>DateTimeOffset.MaxValue</code>.
+<div class="oh-hero py-4 py-md-5 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="display-6 mb-1"><i class="bi bi-shield-exclamation me-2"></i>Блокировка пользователя</h1>
+                <p class="text-secondary mb-0">Пользователь: <strong>@Model.UserName</strong></p>
+            </div>
+            <a class="btn btn-outline-secondary" asp-action="Index">← К списку</a>
         </div>
     </div>
+</div>
 
-    <div class="col-12">
-        <label asp-for="Minutes" class="form-label"></label>
-        <input asp-for="Minutes" class="form-control" />
-        <div class="form-text">Если не бессрочно: 60 = 1 час, 1440 = 1 день.</div>
-        <span asp-validation-for="Minutes" class="text-danger"></span>
-    </div>
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card border-0 shadow-sm oh-card border-start border-warning border-4">
+                <div class="card-body p-4 p-md-5">
 
-    <div class="col-12 d-flex gap-2">
-        <button class="btn btn-warning" type="submit">Заблокировать</button>
-        <a class="btn btn-outline-secondary" asp-action="Index">Назад</a>
+                    <form method="post" class="row g-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="col-12">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm border-0 mb-0"></div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-2">Срок блокировки</label>
+                            <div class="p-3 border rounded bg-body-tertiary">
+                                <div class="form-check form-switch fs-5 mb-2">
+                                    <input asp-for="Permanent" class="form-check-input" id="permanentSwitch" />
+                                    <label asp-for="Permanent" class="form-check-label fs-6 ms-2" for="permanentSwitch"></label>
+                                </div>
+                                <div class="form-text">Если включено — бан бессрочный. Иначе используется значение ниже.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Minutes" class="form-label fw-bold"></label>
+                            <input asp-for="Minutes" class="form-control" />
+                            <div class="form-text">60 = 1 час, 1440 = 1 день, 10080 = 1 неделя.</div>
+                            <span asp-validation-for="Minutes" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Reason" class="form-label fw-bold"></label>
+                            <textarea asp-for="Reason" class="form-control" rows="4"
+                                      placeholder="Например: «Систематические оскорбления других участников в комментариях»."></textarea>
+                            <div class="form-text">Видна заблокированному пользователю на странице бана. До 1000 символов.</div>
+                            <span asp-validation-for="Reason" class="text-danger small"></span>
+                        </div>
+
+                        <hr class="my-3" />
+
+                        <div class="col-12 d-flex flex-column flex-md-row justify-content-end gap-3">
+                            <a class="btn btn-light border px-4" asp-action="Index">Отмена</a>
+                            <button class="btn btn-warning px-5 fw-bold shadow-sm" type="submit">
+                                <i class="bi bi-lock me-1"></i>Заблокировать
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
     </div>
-</form>
+</div>

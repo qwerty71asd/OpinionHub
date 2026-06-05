@@ -1,0 +1,8 @@
+@model OpinionHub.Web.ViewComponents.AdminCountersViewComponent.AdminCountersVm
+@if (Model.Total > 0)
+{
+    <span class="badge rounded-pill bg-danger ms-1"
+          title="@Model.PendingReports жалоб · @Model.PendingAppeals апелляций">
+        @Model.Total
+    </span>
+}

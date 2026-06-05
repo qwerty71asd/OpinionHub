@@ -3,6 +3,16 @@
 {
     <span class="text-secondary">Аноним</span>
 }
+else if (Model.IsDeleted)
+{
+    <span class="d-inline-flex align-items-center gap-1 text-secondary fst-italic" title="Аккаунт удалён">
+        <span class="rounded-circle bg-secondary-subtle text-secondary d-inline-flex align-items-center justify-content-center"
+              style="width:24px;height:24px;">
+            <i class="bi bi-person-x"></i>
+        </span>
+        Удалённый аккаунт
+    </span>
+}
 else
 {
     <span class="d-inline-flex align-items-center gap-1">

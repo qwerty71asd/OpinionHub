@@ -697,6 +697,9 @@ html[data-bs-theme="dark"] .oh-composer-pill:focus-within {
     font-size: 0.95rem;
     color: inherit;
     max-height: 9rem;
+    overflow-y: hidden;
+}
+.oh-composer-input.is-overflow {
     overflow-y: auto;
 }
 .oh-composer-input::placeholder { color: var(--oh-text-secondary); }

@@ -1,4 +1,5 @@
 @using System.Security.Claims
+@using System.Text.Json
 <!DOCTYPE html>
 <html lang="ru" data-bs-theme="light">
 <head>
@@ -46,6 +47,7 @@
                        title="Админка" aria-label="Админка">
                         <i class="bi bi-shield-lock"></i>
                         <span class="d-none d-sm-inline ms-1">Админка</span>
+                        @await Component.InvokeAsync("AdminCounters")
                     </a>
                 </li>
             }
@@ -133,6 +135,16 @@
     </div>
 </footer>
 
+@{
+    var ohPayload = JsonSerializer.Serialize(new
+    {
+        currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+        userName = User.Identity?.Name,
+        isAuthenticated = User.Identity?.IsAuthenticated == true,
+        isAdmin = User.IsInRole("Admin")
+    });
+}
+<script>window.OH = @Html.Raw(ohPayload);</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>

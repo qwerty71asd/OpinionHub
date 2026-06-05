@@ -56,17 +56,36 @@
             }
             else
             {
-                <button id="subscribe-btn"
-                        type="button"
-                        class="btn @(Model.IsSubscribed ? "btn-outline-primary" : "btn-primary")"
-                        data-username="@Model.UserName"
-                        data-subscribed="@(Model.IsSubscribed ? "true" : "false")">
-                    <i class="bi @(Model.IsSubscribed ? "bi-person-dash" : "bi-person-plus") me-1"></i>
-                    <span class="subscribe-label">@(Model.IsSubscribed ? "Отписаться" : "Подписаться")</span>
-                </button>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="subscribe-btn"
+                            type="button"
+                            class="btn @(Model.IsSubscribed ? "btn-outline-primary" : "btn-primary")"
+                            data-username="@Model.UserName"
+                            data-subscribed="@(Model.IsSubscribed ? "true" : "false")">
+                        <i class="bi @(Model.IsSubscribed ? "bi-person-dash" : "bi-person-plus") me-1"></i>
+                        <span class="subscribe-label">@(Model.IsSubscribed ? "Отписаться" : "Подписаться")</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning"
+                            data-bs-toggle="modal" data-bs-target="#reportModal"
+                            data-target-type="User"
+                            data-target-key="@Model.UserId"
+                            data-target-label="Профиль @Model.UserName"
+                            title="Пожаловаться на профиль">
+                        <i class="bi bi-flag"></i>
+                    </button>
+                </div>
             }
         </div>
     </div>
+
+    @if (TempData["ReportMessage"] is string reportOk)
+    {
+        <div class="alert alert-success shadow-sm">@reportOk</div>
+    }
+    @if (TempData["ReportError"] is string reportErr)
+    {
+        <div class="alert alert-danger shadow-sm">@reportErr</div>
+    }
 
     <ul class="nav nav-pills mb-3 gap-2" role="tablist">
         <li class="nav-item" role="presentation">
@@ -163,7 +182,7 @@
                                         <h6 class="mb-1 text-truncate">@poll.Title</h6>
                                         <div class="small text-secondary d-flex align-items-center gap-1 flex-wrap">
                                             <span>Автор:</span>
-                                            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath))
+                                            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath, poll.Author?.IsDeleted ?? false))
                                             @if (poll.IsDeleted)
                                             {
                                                 <span class="badge rounded-pill bg-danger-subtle text-danger ms-2">
@@ -219,7 +238,7 @@
                                         </h6>
                                         <div class="small text-secondary d-flex align-items-center gap-1 flex-wrap">
                                             <span>Автор:</span>
-                                            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath))
+                                            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(poll.IsAnonymousAuthor, poll.Author?.UserName, poll.Author?.AvatarPath, poll.Author?.IsDeleted ?? false))
                                         </div>
                                     </div>
                                     <a asp-controller="Polls" asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-link text-decoration-none flex-shrink-0">
@@ -234,6 +253,11 @@
         </div>
     </div>
 </div>
+
+@if (Model.IsViewerAuthenticated && !Model.IsOwnProfile)
+{
+    <partial name="_ReportModal" />
+}
 
 @if (!Model.IsOwnProfile && Model.IsViewerAuthenticated)
 {

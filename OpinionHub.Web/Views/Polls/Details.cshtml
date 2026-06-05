@@ -57,7 +57,7 @@
 
                 <div class="text-secondary small d-flex flex-wrap align-items-center gap-1 mt-1">
                     <span>Автор:</span>
-                    @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(Model.IsAnonymousAuthor, Model.Author?.UserName, Model.Author?.AvatarPath))
+                    @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(Model.IsAnonymousAuthor, Model.Author?.UserName, Model.Author?.AvatarPath, Model.Author?.IsDeleted ?? false))
                     <span class="mx-1">•</span>
                     <span>Голосов: <strong>@total</strong></span>
                     @if (Model.EndDateUtc is not null)
@@ -96,6 +96,45 @@
                     </span>
                 }
 
+                @if (User.Identity?.IsAuthenticated == true && !isAuthor && !User.IsInRole("Admin"))
+                {
+                    <button type="button" class="btn btn-sm btn-outline-warning"
+                            data-bs-toggle="modal" data-bs-target="#reportModal"
+                            data-target-type="Poll"
+                            data-target-key="@Model.Id"
+                            data-target-label="Опрос: @Model.Title"
+                            title="Пожаловаться на опрос">
+                        <i class="bi bi-flag"></i>
+                        <span class="d-none d-md-inline ms-1">Пожаловаться</span>
+                    </button>
+                }
+
+                @if (User.IsInRole("Admin") && !isAuthor && !Model.IsAnonymousAuthor && Model.Author != null && !Model.Author.IsDeleted)
+                {
+                    <a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.Author.UserName"
+                       class="btn btn-sm btn-outline-secondary" title="Профиль автора">
+                        <i class="bi bi-person"></i>
+                        <span class="d-none d-md-inline ms-1">Профиль автора</span>
+                    </a>
+                    <a asp-controller="Admin" asp-action="Lockout" asp-route-id="@Model.AuthorId"
+                       class="btn btn-sm btn-outline-warning" title="Забанить автора">
+                        <i class="bi bi-slash-circle"></i>
+                        <span class="d-none d-md-inline ms-1">Забанить автора</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("Admin") && !isAuthor)
+                {
+                    <form asp-action="AdminDelete" asp-controller="Polls" asp-route-id="@Model.Id" method="post"
+                          onsubmit="return confirm('Удалить этот опрос как админ? Он скроется из ленты.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-danger" title="Удалить опрос">
+                            <i class="bi bi-trash"></i>
+                            <span class="d-none d-md-inline ms-1">Удалить</span>
+                        </button>
+                    </form>
+                }
+
                 <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="Index" title="Назад в ленту">
                     <i class="bi bi-arrow-left"></i>
                     <span class="d-none d-md-inline ms-1">В ленту</span>
@@ -109,6 +148,14 @@
     @if (TempData["VoteError"] is string voteError)
     {
         <div class="alert alert-danger shadow-sm">@voteError</div>
+    }
+    @if (TempData["ReportMessage"] is string reportOk)
+    {
+        <div class="alert alert-success shadow-sm">@reportOk</div>
+    }
+    @if (TempData["ReportError"] is string reportErr)
+    {
+        <div class="alert alert-danger shadow-sm">@reportErr</div>
     }
 
     @* Мобильные табы. На lg+ скрыты CSS-классом .oh-details-tabs. *@
@@ -405,6 +452,11 @@
         </section>
     }
 </div>
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <partial name="_ReportModal" />
+}
 
 @* Lightbox — модалка для просмотра вложения комментария во весь экран *@
 <div class="modal fade" id="comment-image-modal" tabindex="-1" aria-hidden="true" aria-labelledby="comment-image-modal-label">

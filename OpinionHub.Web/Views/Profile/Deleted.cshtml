@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "Аккаунт удалён";
+}
+
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title justify-content-center text-center mb-2 text-secondary">
+        <i class="bi bi-person-x"></i>@ViewData["Title"]
+    </h1>
+    <p class="oh-page-subtitle text-center mb-3">Этого пользователя больше нет на сайте.</p>
+
+    <div class="card border-0 shadow-sm oh-card">
+        <div class="card-body p-4 text-center">
+            <div class="mb-3"><i class="bi bi-person-x display-4 text-secondary"></i></div>
+
+            <p class="text-secondary mb-4">
+                Аккаунт был удалён администратором или самим владельцем.
+                Оставленные им комментарии и опросы сохранены и подписаны как «Удалённый аккаунт».
+            </p>
+
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg w-100">
+                <i class="bi bi-arrow-left me-1"></i>Вернуться к опросам
+            </a>
+        </div>
+    </div>
+</div>

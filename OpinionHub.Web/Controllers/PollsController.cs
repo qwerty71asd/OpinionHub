@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Identity;
+using OpinionHub.Web.Background;
 using OpinionHub.Web.Hubs;
 using OpinionHub.Web.Services;
 using OpinionHub.Web.ViewModels;
@@ -17,19 +18,21 @@ public class PollsController : Controller
     private readonly IPollService _pollService;
     private readonly IHubContext<PollHub> _hub;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ITelegramNotificationService _telegram;
+    private readonly IBackgroundTaskQueue _taskQueue;
     private readonly ILikeService _likes;
     private readonly ICommentService _comments;
+    private readonly ILogger<PollsController> _logger;
 
-    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService, ITelegramNotificationService telegram, ILikeService likes, ICommentService comments)
+    public PollsController(IPollService pollService, IHubContext<PollHub> hub, UserManager<ApplicationUser> userManager, AiAnalyticsService aiService, IBackgroundTaskQueue taskQueue, ILikeService likes, ICommentService comments, ILogger<PollsController> logger)
     {
         _pollService = pollService;
         _hub = hub;
         _userManager = userManager;
         _aiService = aiService;
-        _telegram = telegram;
+        _taskQueue = taskQueue;
         _likes = likes;
         _comments = comments;
+        _logger = logger;
     }
 
     private async Task<IActionResult?> RequireConfirmedEmailOrRedirectAsync(string? returnUrl)
@@ -71,26 +74,26 @@ public class PollsController : Controller
             var poll = await _pollService.CreateDraftAsync(model, userId);
             if (poll.Status == PollStatus.Active)
             {
-                await _hub.Clients.All.SendAsync("ReceiveNewPoll", new
-                {
-                    id = poll.Id,
-                    title = poll.Title,
-                    author = poll.IsAnonymousAuthor ? "Аноним" : (User.Identity?.Name ?? "Аноним"),
-                    isAnonymous = poll.IsAnonymousAuthor,
-                    votesCount = 0
-                });
-                var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
+                // SignalR-broadcast только тем, кто НЕ в этой вкладке: инициатор увидит карточку через
+                // server-render на /Home/Index, а клиент дополнительно дедупит по id (poll-feed.js).
+                var connId = Request.Headers["X-SignalR-Connection-Id"].ToString();
+                await _pollService.PublishBroadcastAsync(poll.Id, string.IsNullOrEmpty(connId) ? null : connId);
 
-                // Если у тебя в модели Poll есть ссылка на картинку (например, poll.ImagePath),
-                // передай её вместо null последним параметром
-                await _telegram.SendPollNotificationAsync(
-                    poll.Title,
-                    "Заходите проголосовать! Ваш голос очень важен.", // Заменили poll.Description на обычную строку
-                    pollUrl,
-                    null
-                );
+                // Telegram-постинг в канал требует pollUrl со scheme/host — формируем здесь,
+                // а сам сетевой вызов уносим в очередь, чтобы не тормозить редирект.
+                var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
+                if (pollUrl is not null)
+                {
+                    var title = poll.Title;
+                    await _taskQueue.QueueAsync((sp, ct) =>
+                        sp.GetRequiredService<ITelegramNotificationService>().SendPollNotificationAsync(
+                            title,
+                            "Заходите проголосовать! Ваш голос очень важен.",
+                            pollUrl,
+                            null));
+                }
             }
-           
+
             return RedirectToAction(nameof(Details), new { id = poll.Id });
         }
         catch (Exception ex)
@@ -152,9 +155,19 @@ public class PollsController : Controller
                 await _hub.Clients.Group($"poll-{id}").SendAsync("updateStats", new { Total = total, Stats = stats });
             }
         }
+        catch (UnauthorizedAccessException)
+        {
+            throw; // DomainExceptionFilter → 403
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Доменные ошибки (`Опрос не найден`, `Срок истёк`, `Ваш голос уже учтён.`) — friendly текст.
+            TempData["VoteError"] = ex.Message;
+        }
         catch (Exception ex)
         {
-            TempData["VoteError"] = ex.Message;
+            _logger.LogError(ex, "Vote save failed for poll {PollId}", id);
+            TempData["VoteError"] = "Не удалось сохранить голос. Попробуйте ещё раз.";
         }
 
         return RedirectToAction(nameof(Details), new { id });
@@ -170,32 +183,40 @@ public class PollsController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         await _pollService.PublishAsync(id, userId);
 
+        var connId = Request.Headers["X-SignalR-Connection-Id"].ToString();
+        await _pollService.PublishBroadcastAsync(id, string.IsNullOrEmpty(connId) ? null : connId);
+
+        var pollUrl = Url.Action("Details", "Polls", new { id }, Request.Scheme);
         var poll = await _pollService.GetPollDetailsAsync(id, userId);
-        if (poll != null)
+        if (poll != null && pollUrl is not null)
         {
-            System.Diagnostics.Debug.WriteLine($"---> SIGNALR: Отправляем новый опрос: {poll.Title}");
-            await _hub.Clients.All.SendAsync("ReceiveNewPoll", new
-            {
-                id = poll.Id,
-                title = poll.Title,
-                author = poll.IsAnonymousAuthor ? "Аноним" : (User.Identity?.Name ?? "Аноним"),
-                isAnonymous = poll.IsAnonymousAuthor,
-                votesCount = 0
-            });
-            var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
-            await _telegram.SendPollNotificationAsync(
-                poll.Title,
-                "Заходите проголосовать! Ваш голос очень важен.", // Заменили poll.Description на обычную строку
-                pollUrl,
-                null
-            );
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("---> SIGNALR ERROR: Опрос не найден после публикации!");
+            var title = poll.Title;
+            await _taskQueue.QueueAsync((sp, ct) =>
+                sp.GetRequiredService<ITelegramNotificationService>().SendPollNotificationAsync(
+                    title,
+                    "Заходите проголосовать! Ваш голос очень важен.",
+                    pollUrl,
+                    null));
         }
 
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> AdminDelete(Guid id, string? returnUrl, [FromServices] IReportService reports)
+    {
+        // EntityNotFoundException из сервиса перехватит DomainExceptionFilter и вернёт 404.
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        await _pollService.AdminSoftDeleteAsync(id, adminId);
+        await _hub.Clients.All.SendAsync("RemovePoll", id.ToString());
+        await reports.ResolveByTargetAsync(ReportTargetType.Poll, id.ToString(), adminId, "Опрос удалён администратором");
+        TempData["AdminMessage"] = "Опрос удалён.";
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
@@ -205,26 +226,19 @@ public class PollsController : Controller
         var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Details), "Polls", new { id }));
         if (gate is not null) return gate;
 
+        // EntityNotFoundException → 404, ForbiddenAccessException → 403 (через DomainExceptionFilter).
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        try
-        {
-            await _pollService.DeleteAsync(id, userId);
+        await _pollService.DeleteAsync(id, userId);
 
-            // SignalR: удаляем у всех из ленты
-            await _hub.Clients.All.SendAsync("RemovePoll", id.ToString());
+        // SignalR: удаляем у всех из ленты
+        await _hub.Clients.All.SendAsync("RemovePoll", id.ToString());
 
-            // Если нам передали ссылку для возврата (например, из профиля) — идем по ней
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
+        // Если нам передали ссылку для возврата (например, из профиля) — идем по ней
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
 
-            // Иначе (по умолчанию) идем на главную
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            TempData["VoteError"] = ex.Message;
-            return RedirectToAction(nameof(Details), new { id });
-        }
+        // Иначе (по умолчанию) идем на главную
+        return RedirectToAction("Index", "Home");
     }
 
     public async Task<IActionResult> ExportCsv(Guid id)
