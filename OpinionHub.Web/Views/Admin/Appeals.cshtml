@@ -238,7 +238,7 @@
                                                     <div class="col-md-6">
                                                         <form asp-action="ApproveAppeal" asp-route-id="@a.Id" method="post" class="d-flex gap-2">
                                                             @Html.AntiForgeryToken()
-                                                            <input class="form-control form-control-sm" name="response" placeholder="Ответ (необязательно)" maxlength="1000" />
+                                                            <input class="form-control form-control-sm" name="response" placeholder="Ответ пользователю..." maxlength="1000" />
                                                             <button type="submit" class="btn btn-sm btn-success">
                                                                 <i class="bi bi-unlock me-1"></i>Одобрить
                                                             </button>
@@ -247,7 +247,7 @@
                                                     <div class="col-md-6">
                                                         <form asp-action="RejectAppeal" asp-route-id="@a.Id" method="post" class="d-flex gap-2">
                                                             @Html.AntiForgeryToken()
-                                                            <input class="form-control form-control-sm" name="response" placeholder="Причина отказа (необязательно)" maxlength="1000" />
+                                                            <input class="form-control form-control-sm" name="response" placeholder="Поясните причину отказа..." maxlength="1000" />
                                                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                                                 <i class="bi bi-x-lg me-1"></i>Отклонить
                                                             </button>

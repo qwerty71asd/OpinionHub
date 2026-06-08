@@ -76,14 +76,14 @@ public class ProfileModel : PageModel
         {
             if (Input.AvatarFile!.Length > MaxAvatarBytes)
             {
-                ModelState.AddModelError(nameof(Input.AvatarFile), "Аватарка должна быть не больше 2 МБ.");
+                ModelState.AddModelError(nameof(Input.AvatarFile), "Файл слишком большой. Максимальный размер аватарки — 2 МБ.");
                 return Page();
             }
 
             if (string.IsNullOrEmpty(Input.AvatarFile.ContentType)
                 || !AllowedContentTypes.Contains(Input.AvatarFile.ContentType))
             {
-                ModelState.AddModelError(nameof(Input.AvatarFile), "Допустимы только JPG, PNG или WebP.");
+                ModelState.AddModelError(nameof(Input.AvatarFile), "Неподдерживаемый формат файла. Используйте JPG, PNG или WebP.");
                 return Page();
             }
         }

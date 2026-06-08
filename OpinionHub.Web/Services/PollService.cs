@@ -264,12 +264,14 @@ public class PollService : IPollService
         else
         {
             var uid = viewerUserId;
-            // Авторизованные видят:
-            // 1. ВСЕ свои опросы (свои черновики видеть нужно в ленте)
-            // 2. Чужие опросы, ТОЛЬКО если они НЕ черновики И (публичные ИЛИ юзер есть в списке допущенных)
+            // Черновики в ленте не показываем никому, даже автору — для них есть вкладка в профиле.
+            // Авторизованный видит опубликованные опросы: свои (любой AudienceType),
+            // чужие публичные, и чужие приватные, в которые он добавлен в AllowedUsers.
             q = q.Where(p =>
-                p.AuthorId == uid
-                || (p.Status != PollStatus.Draft && (p.AudienceType == AudienceType.Everyone || p.AllowedUsers.Any(a => a.UserId == uid)))
+                p.Status != PollStatus.Draft
+                && (p.AuthorId == uid
+                    || p.AudienceType == AudienceType.Everyone
+                    || p.AllowedUsers.Any(a => a.UserId == uid))
             );
         }
 

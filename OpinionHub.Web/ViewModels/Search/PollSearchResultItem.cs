@@ -8,6 +8,7 @@ namespace OpinionHub.Web.ViewModels.Search;
 public record PollSearchResultItem(
     Guid Id,
     string Title,
+    string? Description,
     string? CoverImagePath,
     bool IsAnonymousAuthor,
     string? AuthorUserName,

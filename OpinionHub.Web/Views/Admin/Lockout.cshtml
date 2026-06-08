@@ -33,15 +33,14 @@
                         <div class="col-12">
                             <label class="form-label fw-bold mb-2">Срок блокировки</label>
                             <div class="p-3 border rounded bg-body-tertiary">
-                                <div class="form-check form-switch fs-5 mb-2">
+                                <div class="form-check form-switch fs-5 mb-0">
                                     <input asp-for="Permanent" class="form-check-input" id="permanentSwitch" />
                                     <label asp-for="Permanent" class="form-check-label fs-6 ms-2" for="permanentSwitch"></label>
                                 </div>
-                                <div class="form-text">Если включено — бан бессрочный. Иначе используется значение ниже.</div>
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="minutesField">
                             <label asp-for="Minutes" class="form-label fw-bold"></label>
                             <input asp-for="Minutes" class="form-control" />
                             <div class="form-text">60 = 1 час, 1440 = 1 день, 10080 = 1 неделя.</div>
@@ -52,7 +51,6 @@
                             <label asp-for="Reason" class="form-label fw-bold"></label>
                             <textarea asp-for="Reason" class="form-control" rows="4"
                                       placeholder="Например: «Систематические оскорбления других участников в комментариях»."></textarea>
-                            <div class="form-text">Видна заблокированному пользователю на странице бана. До 1000 символов.</div>
                             <span asp-validation-for="Reason" class="text-danger small"></span>
                         </div>
 
@@ -71,3 +69,16 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const sw = document.getElementById('permanentSwitch');
+            const minutesField = document.getElementById('minutesField');
+            if (!sw || !minutesField) return;
+            function sync() { minutesField.classList.toggle('d-none', sw.checked); }
+            sw.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

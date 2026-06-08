@@ -14,7 +14,7 @@ public class AppealCreateVm
     public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Опишите ситуацию.")]
-    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Сообщение от 50 до 2000 символов.")]
+    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Слишком короткое сообщение — напишите хотя бы 50 символов (максимум 2000).")]
     [Display(Name = "Сообщение")]
     public string Message { get; set; } = string.Empty;
 }

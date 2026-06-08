@@ -166,7 +166,7 @@
                                                 <div class="d-flex flex-wrap gap-2 mt-2">
                                                     <form asp-action="MarkReportReviewed" asp-route-id="@r.Id" method="post" class="d-flex flex-grow-1 gap-2">
                                                         @Html.AntiForgeryToken()
-                                                        <input class="form-control form-control-sm" name="adminNote" placeholder="Заметка (необязательно)" maxlength="1000" />
+                                                        <input class="form-control form-control-sm" name="adminNote" placeholder="Комментарий к решению..." maxlength="1000" />
                                                         <button type="submit" class="btn btn-sm btn-success">
                                                             <i class="bi bi-check2 me-1"></i>Рассмотреть
                                                         </button>

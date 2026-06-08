@@ -13,7 +13,7 @@ public class AdminLockoutVm
     public bool Permanent { get; set; }
 
     [Range(1, 525600)] // до года в минутах
-    [Display(Name = "Минут (если не бессрочно)")]
+    [Display(Name = "Минут")]
     public int Minutes { get; set; } = 60;
 
     [Display(Name = "Причина блокировки")]

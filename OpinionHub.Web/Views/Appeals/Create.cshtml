@@ -52,7 +52,6 @@
                         <textarea asp-for="Message" class="form-control" rows="6" maxlength="2000"
                                   placeholder="Опишите, почему вы считаете блокировку ошибочной..."></textarea>
                         <span asp-validation-for="Message" class="text-danger small"></span>
-                        <div class="form-text">От 50 до 2000 символов.</div>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -69,3 +68,6 @@
     </div>
 </div>
 
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

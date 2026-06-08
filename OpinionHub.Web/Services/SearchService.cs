@@ -59,6 +59,7 @@ public class SearchService : ISearchService
             .Select(p => new PollSearchResultItem(
                 p.Id,
                 p.Title,
+                p.Description,
                 p.CoverImagePath,
                 p.IsAnonymousAuthor,
                 p.Author != null ? p.Author.UserName : null,

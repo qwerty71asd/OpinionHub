@@ -4,20 +4,25 @@
     {
         <img src="@Model.CoverImagePath" alt="" class="oh-search-row__cover" />
     }
-    else
-    {
-        <div class="oh-search-row__cover-fallback" aria-hidden="true">
-            <i class="bi bi-bar-chart"></i>
-        </div>
-    }
     <div class="oh-search-row__body">
         <div class="oh-search-row__title">@Model.Title</div>
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <div class="oh-search-row__desc">@Model.Description</div>
+        }
         <div class="oh-search-row__meta">
-            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(
-                Model.IsAnonymousAuthor,
-                Model.AuthorUserName,
-                Model.AuthorAvatarPath,
-                Model.AuthorIsDeleted))
+            @if (Model.IsAnonymousAuthor)
+            {
+                <text>Аноним</text>
+            }
+            else if (Model.AuthorIsDeleted || string.IsNullOrEmpty(Model.AuthorUserName))
+            {
+                <text>Удалённый аккаунт</text>
+            }
+            else
+            {
+                <text>by @Model.AuthorUserName</text>
+            }
         </div>
     </div>
 </a>
