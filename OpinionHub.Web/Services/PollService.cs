@@ -256,10 +256,16 @@ public class PollService : IPollService
     {
         // В ленту НЕ попадают soft-удалённые. Профиль автора и история голосований
         // умышленно показывают их и дальше — фильтр живёт только здесь.
+        // Истёкшие опросы (Completed/Archived или с прошедшим EndDateUtc) тоже скрываем
+        // из ленты у всех, включая автора — они остаются доступны в его профиле.
+        var now = DateTime.UtcNow;
         var q = _db.Polls
             .Include(p => p.Options)
             .Include(p => p.Author)
-            .Where(p => !p.IsDeleted);
+            .Where(p => !p.IsDeleted)
+            .Where(p => p.Status != PollStatus.Completed
+                        && p.Status != PollStatus.Archived
+                        && (p.EndDateUtc == null || p.EndDateUtc > now));
 
         if (string.IsNullOrWhiteSpace(viewerUserId))
         {
