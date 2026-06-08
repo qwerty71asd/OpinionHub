@@ -254,14 +254,22 @@ public class PollService : IPollService
 
     public async Task<IReadOnlyCollection<Poll>> GetFeedAsync(string? viewerUserId)
     {
-        // В ленту НЕ попадают soft-удалённые. Профиль автора и история голосований
-        // умышленно показывают их и дальше — фильтр живёт только здесь.
-        // Истёкшие опросы (Completed/Archived или с прошедшим EndDateUtc) тоже скрываем
-        // из ленты у всех, включая автора — они остаются доступны в его профиле.
-        var now = DateTime.UtcNow;
-        var q = _db.Polls
+        return await BuildVisiblePollsQuery(viewerUserId)
             .Include(p => p.Options)
             .Include(p => p.Author)
+            .OrderBy(p => p.Status == PollStatus.Active ? 0 : 1)
+            .ThenByDescending(p => p.CreatedAtUtc)
+            .ToListAsync();
+    }
+
+    public IQueryable<Poll> BuildVisiblePollsQuery(string? viewerUserId)
+    {
+        // Единая точка истины правил видимости — используется лентой (GetFeedAsync)
+        // и глобальным поиском (SearchService). Так фильтры не разъедутся при правках.
+        // soft-удалённые и истёкшие (Completed/Archived/прошедший EndDateUtc) скрываем у всех,
+        // включая автора — они остаются доступны в его профиле, но не «всплывают» в общих списках.
+        var now = DateTime.UtcNow;
+        var q = _db.Polls
             .Where(p => !p.IsDeleted)
             .Where(p => p.Status != PollStatus.Completed
                         && p.Status != PollStatus.Archived
@@ -276,7 +284,7 @@ public class PollService : IPollService
         {
             var uid = viewerUserId;
             // Авторизованные видят:
-            // 1. ВСЕ свои опросы (свои черновики видеть нужно)
+            // 1. ВСЕ свои опросы (свои черновики видеть нужно в ленте)
             // 2. Чужие опросы, ТОЛЬКО если они НЕ черновики И (публичные ИЛИ юзер есть в списке допущенных)
             q = q.Where(p =>
                 p.AuthorId == uid
@@ -284,10 +292,7 @@ public class PollService : IPollService
             );
         }
 
-        return await q
-            .OrderBy(p => p.Status == PollStatus.Active ? 0 : 1)
-            .ThenByDescending(p => p.CreatedAtUtc)
-            .ToListAsync();
+        return q;
     }
 
     public async Task<byte[]> ExportCsvAsync(Guid pollId, string userId)

@@ -55,6 +55,12 @@
 
         <div class="d-flex align-items-center gap-1 gap-sm-2 flex-nowrap">
             <button class="btn btn-outline-secondary btn-sm oh-icon-btn"
+                    type="button" id="globalSearchBtn"
+                    title="Поиск (Ctrl+K)" aria-label="Поиск">
+                <i class="bi bi-search"></i>
+            </button>
+
+            <button class="btn btn-outline-secondary btn-sm oh-icon-btn"
                     type="button" id="themeToggle"
                     title="Сменить тему" aria-label="Сменить тему">
                 <i class="bi bi-moon-stars"></i>
@@ -149,6 +155,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
+@await Html.PartialAsync("_GlobalSearchOverlay")
+<script src="~/js/global-search.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -913,3 +913,330 @@ html[data-bs-theme="dark"] .comment-replies {
 .oh-composer.is-collapsed .oh-composer-preview {
     display: none !important;
 }
+
+
+/* ============================================
+   Global search — overlay в навбаре + страница /Search
+   Переключатель состояний работает через data-state на .oh-search-results:
+   "empty" | "loading" | "no-results" | "results". CSS показывает только
+   соответствующий блок [data-state-only="..."].
+   ============================================ */
+.oh-search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    background: rgba(0, 0, 0, .35);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 10vh 1rem 1rem;
+    overflow-y: auto;
+}
+
+.oh-search-overlay[hidden] { display: none; }
+
+.oh-search-modal {
+    width: 100%;
+    max-width: 640px;
+    background: var(--oh-surface-strong);
+    backdrop-filter: var(--oh-blur-strong);
+    border: 1px solid var(--oh-border);
+    border-radius: var(--oh-radius-lg);
+    box-shadow: var(--oh-shadow-hover);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: oh-search-in .18s ease-out;
+}
+
+@keyframes oh-search-in {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.oh-search-bar {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--oh-border);
+}
+.oh-search-bar__icon {
+    color: var(--oh-text-secondary);
+    font-size: 1.1rem;
+    flex: 0 0 auto;
+}
+.oh-search-bar__input {
+    flex: 1 1 auto;
+    border: 0;
+    background: transparent;
+    outline: 0;
+    font-size: 1rem;
+    line-height: 1.3;
+    color: inherit;
+    min-width: 0;
+}
+.oh-search-bar__input::placeholder { color: var(--oh-text-secondary); }
+.oh-search-bar__kbd {
+    flex: 0 0 auto;
+    font-size: .72rem;
+    padding: .15rem .4rem;
+    border-radius: var(--oh-radius-sm);
+    background: var(--oh-surface-muted);
+    border: 1px solid var(--oh-border);
+    color: var(--oh-text-secondary);
+}
+
+.oh-search-results {
+    max-height: calc(100dvh - 280px);
+    min-height: 160px;
+    overflow-y: auto;
+    padding: .5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--oh-scrollbar-thumb) var(--oh-scrollbar-track);
+}
+
+/* По умолчанию скрываем все state-блоки и показываем только подходящий. */
+.oh-search-results > [data-state-only] { display: none; }
+.oh-search-results[data-state="empty"]      > [data-state-only="empty"]      { display: block; }
+.oh-search-results[data-state="loading"]    > [data-state-only="loading"]    { display: block; }
+.oh-search-results[data-state="no-results"] > [data-state-only="no-results"] { display: block; }
+.oh-search-results[data-state="results"]    > [data-state-only="results"]    { display: block; }
+
+.oh-search-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--oh-text-secondary);
+}
+.oh-search-empty i {
+    font-size: 2rem;
+    color: var(--oh-text-tertiary);
+}
+.oh-search-empty__hint {
+    font-size: .82rem;
+    color: var(--oh-text-tertiary);
+}
+
+.oh-search-section { padding: .25rem 0 .5rem; }
+.oh-search-section + .oh-search-section {
+    border-top: 1px solid var(--oh-border);
+    margin-top: .35rem;
+    padding-top: .65rem;
+}
+
+.oh-search-section__title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 .65rem .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--oh-text-secondary);
+}
+.oh-search-section__title i { font-size: .9em; }
+.oh-search-section__count {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--oh-text-tertiary);
+}
+
+.oh-search-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.oh-search-item {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .55rem .65rem;
+    border-radius: var(--oh-radius-sm);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color .12s ease;
+    min-height: 56px;
+}
+.oh-search-item:hover,
+.oh-search-item.is-active {
+    background: rgba(var(--oh-accent-rgb), .10);
+}
+.oh-search-item:hover .oh-search-item__title,
+.oh-search-item.is-active .oh-search-item__title {
+    color: rgb(var(--oh-accent-rgb));
+}
+
+.oh-search-item__icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--oh-radius-sm);
+    background: rgba(var(--oh-accent-rgb), .10);
+    color: rgb(var(--oh-accent-rgb));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.oh-search-item__icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.oh-search-item__icon i { font-size: 1.05rem; }
+
+.oh-search-item__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+.oh-search-item__title {
+    font-weight: 600;
+    font-size: .95rem;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.oh-search-item__subtitle {
+    font-size: .82rem;
+    color: var(--oh-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.oh-search-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    padding: .65rem 1rem;
+    border-top: 1px solid var(--oh-border);
+    background: var(--oh-surface-soft);
+    font-size: .85rem;
+    font-weight: 600;
+    color: rgb(var(--oh-accent-rgb));
+    text-decoration: none;
+}
+.oh-search-footer:hover {
+    background: rgba(var(--oh-accent-rgb), .08);
+    color: rgb(var(--oh-accent-rgb));
+}
+
+/* Скроллбар внутри результатов */
+.oh-search-results::-webkit-scrollbar { width: 8px; }
+.oh-search-results::-webkit-scrollbar-track { background: var(--oh-scrollbar-track); }
+.oh-search-results::-webkit-scrollbar-thumb {
+    background: var(--oh-scrollbar-thumb);
+    border-radius: var(--oh-radius-pill);
+}
+
+/* Мобильный режим: overlay на весь экран */
+@media (max-width: 575.98px) {
+    .oh-search-overlay {
+        padding: 0;
+        align-items: stretch;
+    }
+    .oh-search-modal {
+        max-width: none;
+        border-radius: 0;
+        height: 100dvh;
+    }
+    .oh-search-results {
+        max-height: none;
+        flex: 1 1 auto;
+    }
+    .oh-search-bar__kbd { display: none; }
+}
+
+/* ============================================
+   Страница /Search — строки результатов
+   ============================================ */
+.oh-search-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .65rem .85rem;
+    border-radius: var(--oh-radius-sm);
+    background: var(--oh-surface);
+    border: 1px solid var(--oh-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.oh-search-row:hover {
+    background: var(--oh-surface-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--oh-shadow-sm);
+}
+
+.oh-search-row__cover {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--oh-radius-sm);
+    object-fit: cover;
+    background: rgba(var(--oh-accent-rgb), .10);
+}
+.oh-search-row__cover-fallback {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--oh-radius-sm);
+    background: rgba(var(--oh-accent-rgb), .10);
+    color: rgb(var(--oh-accent-rgb));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.oh-search-row__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.oh-search-row__title {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.oh-search-row__title:hover { color: rgb(var(--oh-accent-rgb)); }
+.oh-search-row__meta {
+    font-size: .85rem;
+    color: var(--oh-text-secondary);
+    margin-top: .15rem;
+}
+
+.oh-search-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.oh-search-empty-page {
+    padding: 4rem 1rem;
+    text-align: center;
+    color: var(--oh-text-secondary);
+}
+.oh-search-empty-page i {
+    font-size: 3rem;
+    color: var(--oh-text-tertiary);
+    display: block;
+    margin-bottom: .75rem;
+}

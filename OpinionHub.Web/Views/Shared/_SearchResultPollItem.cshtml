@@ -1,0 +1,23 @@
+@model OpinionHub.Web.ViewModels.Search.PollSearchResultItem
+<a asp-controller="Polls" asp-action="Details" asp-route-id="@Model.Id" class="oh-search-row">
+    @if (!string.IsNullOrEmpty(Model.CoverImagePath))
+    {
+        <img src="@Model.CoverImagePath" alt="" class="oh-search-row__cover" />
+    }
+    else
+    {
+        <div class="oh-search-row__cover-fallback" aria-hidden="true">
+            <i class="bi bi-bar-chart"></i>
+        </div>
+    }
+    <div class="oh-search-row__body">
+        <div class="oh-search-row__title">@Model.Title</div>
+        <div class="oh-search-row__meta">
+            @await Html.PartialAsync("_PollAuthor", new OpinionHub.Web.ViewModels.PollAuthorLinkViewModel(
+                Model.IsAnonymousAuthor,
+                Model.AuthorUserName,
+                Model.AuthorAvatarPath,
+                Model.AuthorIsDeleted))
+        </div>
+    </div>
+</a>

@@ -1,0 +1,29 @@
+@model OpinionHub.Web.ViewModels.Search.UserSearchResultItem
+<a asp-controller="Profile" asp-action="Index" asp-route-userName="@Model.UserName" class="oh-search-row">
+    @await Html.PartialAsync("_UserAvatar", new OpinionHub.Web.ViewModels.UserAvatarViewModel(Model.UserName, Model.AvatarPath, 56))
+    <div class="oh-search-row__body">
+        <div class="oh-search-row__title">&#64;@Model.UserName</div>
+        <div class="oh-search-row__meta">
+            @if (Model.PollsCount.HasValue)
+            {
+                <span>@Model.PollsCount @PluralizePolls(Model.PollsCount.Value)</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Bio))
+            {
+                if (Model.PollsCount.HasValue) { <span> · </span> }
+                <span>@(Model.Bio!.Length > 100 ? Model.Bio.Substring(0, 100) + "…" : Model.Bio)</span>
+            }
+        </div>
+    </div>
+</a>
+
+@functions {
+    static string PluralizePolls(int n)
+    {
+        var mod10 = n % 10;
+        var mod100 = n % 100;
+        if (mod10 == 1 && mod100 != 11) return "опрос";
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "опроса";
+        return "опросов";
+    }
+}

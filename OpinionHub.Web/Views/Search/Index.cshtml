@@ -1,0 +1,177 @@
+@model OpinionHub.Web.ViewModels.Search.SearchPageViewModel
+@{
+    ViewData["Title"] = string.IsNullOrEmpty(Model.Query) ? "Поиск" : $"Поиск: {Model.Query}";
+    var hasQuery = !string.IsNullOrWhiteSpace(Model.Query);
+    var nothing = hasQuery && Model.TotalPolls == 0 && Model.TotalUsers == 0;
+}
+
+<div class="oh-page oh-page--wide">
+    <h1 class="oh-page-title">
+        <i class="bi bi-search"></i>
+        @if (hasQuery)
+        {
+            <span>Результаты по «@Model.Query»</span>
+        }
+        else
+        {
+            <span>Поиск</span>
+        }
+    </h1>
+
+    @if (!hasQuery)
+    {
+        <p class="oh-page-subtitle">
+            Откройте поиск иконкой в шапке или нажмите <kbd>Ctrl</kbd>+<kbd>K</kbd>, чтобы искать опросы и аккаунты.
+        </p>
+    }
+    else
+    {
+        <p class="oh-page-subtitle">
+            Найдено: @Model.TotalPolls @PluralizePolls(Model.TotalPolls), @Model.TotalUsers @PluralizeUsers(Model.TotalUsers).
+        </p>
+
+        <nav class="oh-manage-nav mb-3">
+            <ul class="oh-manage-nav__list">
+                <li>
+                    <a class="nav-link @(Model.Tab == "all" ? "active" : "")"
+                       asp-controller="Search" asp-action="Index"
+                       asp-route-q="@Model.Query" asp-route-tab="all">Все</a>
+                </li>
+                <li>
+                    <a class="nav-link @(Model.Tab == "polls" ? "active" : "")"
+                       asp-controller="Search" asp-action="Index"
+                       asp-route-q="@Model.Query" asp-route-tab="polls">
+                        Опросы <span class="text-secondary ms-1">@Model.TotalPolls</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @(Model.Tab == "users" ? "active" : "")"
+                       asp-controller="Search" asp-action="Index"
+                       asp-route-q="@Model.Query" asp-route-tab="users">
+                        Люди <span class="text-secondary ms-1">@Model.TotalUsers</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        @if (nothing)
+        {
+            <div class="oh-search-empty-page">
+                <i class="bi bi-emoji-frown"></i>
+                <p class="m-0">Ничего не нашли по запросу «@Model.Query».</p>
+                <p class="text-secondary mt-1 mb-0 small">Попробуйте другое слово или проверьте раскладку.</p>
+            </div>
+        }
+        else if (Model.Tab == "all")
+        {
+            <div class="row g-4">
+                @if (Model.Polls.Count > 0)
+                {
+                    <section class="col-12">
+                        <h2 class="oh-section-title">
+                            <i class="bi bi-bar-chart"></i> Опросы
+                            <span class="text-secondary fw-normal ms-1">(@Model.TotalPolls)</span>
+                        </h2>
+                        <div class="oh-search-list">
+                            @foreach (var p in Model.Polls)
+                            {
+                                @await Html.PartialAsync("_SearchResultPollItem", p)
+                            }
+                        </div>
+                        @if (Model.TotalPolls > Model.Polls.Count)
+                        {
+                            <div class="mt-2">
+                                <a asp-controller="Search" asp-action="Index"
+                                   asp-route-q="@Model.Query" asp-route-tab="polls"
+                                   class="text-decoration-none fw-semibold">
+                                    Все опросы (@Model.TotalPolls) <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        }
+                    </section>
+                }
+
+                @if (Model.Users.Count > 0)
+                {
+                    <section class="col-12">
+                        <h2 class="oh-section-title">
+                            <i class="bi bi-people"></i> Люди
+                            <span class="text-secondary fw-normal ms-1">(@Model.TotalUsers)</span>
+                        </h2>
+                        <div class="oh-search-list">
+                            @foreach (var u in Model.Users)
+                            {
+                                @await Html.PartialAsync("_SearchResultUserItem", u)
+                            }
+                        </div>
+                        @if (Model.TotalUsers > Model.Users.Count)
+                        {
+                            <div class="mt-2">
+                                <a asp-controller="Search" asp-action="Index"
+                                   asp-route-q="@Model.Query" asp-route-tab="users"
+                                   class="text-decoration-none fw-semibold">
+                                    Все люди (@Model.TotalUsers) <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+        }
+        else if (Model.Tab == "polls")
+        {
+            <div class="oh-search-list">
+                @foreach (var p in Model.Polls)
+                {
+                    @await Html.PartialAsync("_SearchResultPollItem", p)
+                }
+            </div>
+            @if (Model.HasMore)
+            {
+                <div class="text-center mt-3">
+                    <a asp-controller="Search" asp-action="Index"
+                       asp-route-q="@Model.Query" asp-route-tab="polls" asp-route-page="@(Model.Page + 1)"
+                       class="btn btn-outline-primary btn-sm">
+                        Показать ещё <i class="bi bi-chevron-down ms-1"></i>
+                    </a>
+                </div>
+            }
+        }
+        else // users
+        {
+            <div class="oh-search-list">
+                @foreach (var u in Model.Users)
+                {
+                    @await Html.PartialAsync("_SearchResultUserItem", u)
+                }
+            </div>
+            @if (Model.HasMore)
+            {
+                <div class="text-center mt-3">
+                    <a asp-controller="Search" asp-action="Index"
+                       asp-route-q="@Model.Query" asp-route-tab="users" asp-route-page="@(Model.Page + 1)"
+                       class="btn btn-outline-primary btn-sm">
+                        Показать ещё <i class="bi bi-chevron-down ms-1"></i>
+                    </a>
+                </div>
+            }
+        }
+    }
+</div>
+
+@functions {
+    static string PluralizePolls(int n)
+    {
+        var m10 = n % 10; var m100 = n % 100;
+        if (m10 == 1 && m100 != 11) return "опрос";
+        if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "опроса";
+        return "опросов";
+    }
+    static string PluralizeUsers(int n)
+    {
+        var m10 = n % 10; var m100 = n % 100;
+        if (m10 == 1 && m100 != 11) return "человек";
+        if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "человека";
+        return "человек";
+    }
+}

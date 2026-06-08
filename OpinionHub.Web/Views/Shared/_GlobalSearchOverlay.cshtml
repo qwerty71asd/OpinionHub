@@ -1,0 +1,67 @@
+@*
+    Глобальный поисковый overlay. Подключается в _Layout.cshtml один раз,
+    открывается по клику на #globalSearchBtn или Ctrl/⌘+K. Содержимое результатов
+    рендерится из JS (wwwroot/js/global-search.js) через DOM API — никакого innerHTML
+    с пользовательскими данными, чтобы избежать XSS.
+*@
+<div class="oh-search-overlay" id="ohSearchOverlay" hidden role="dialog" aria-modal="true" aria-label="Поиск">
+    <div class="oh-search-modal" role="document">
+        <div class="oh-search-bar">
+            <i class="bi bi-search oh-search-bar__icon" aria-hidden="true"></i>
+            <input type="text"
+                   id="ohSearchInput"
+                   class="oh-search-bar__input"
+                   placeholder="Найти опросы и людей…"
+                   autocomplete="off"
+                   spellcheck="false"
+                   aria-label="Поисковый запрос" />
+            <kbd class="oh-search-bar__kbd" aria-hidden="true">Esc</kbd>
+        </div>
+
+        <div class="oh-search-results" id="ohSearchResults" data-state="empty">
+            <div class="oh-search-empty" data-state-only="empty">
+                <i class="bi bi-search"></i>
+                <p class="m-0">Начните вводить, чтобы найти опросы и людей</p>
+                <p class="oh-search-empty__hint m-0">Минимум 2 символа</p>
+            </div>
+
+            <div class="oh-search-empty" data-state-only="loading">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Загрузка…</span>
+                </div>
+                <p class="m-0 small text-secondary">Ищем…</p>
+            </div>
+
+            <div class="oh-search-empty" data-state-only="no-results">
+                <i class="bi bi-emoji-frown"></i>
+                <p class="m-0">Ничего не нашли</p>
+                <p class="oh-search-empty__hint m-0">Попробуйте другое слово</p>
+            </div>
+
+            <div data-state-only="results">
+                <section class="oh-search-section" id="ohSearchPolls" hidden>
+                    <h3 class="oh-search-section__title">
+                        <i class="bi bi-bar-chart"></i>
+                        Опросы
+                        <span class="oh-search-section__count" id="ohSearchPollsCount"></span>
+                    </h3>
+                    <div class="oh-search-group" id="ohSearchPollsGroup"></div>
+                </section>
+
+                <section class="oh-search-section" id="ohSearchUsers" hidden>
+                    <h3 class="oh-search-section__title">
+                        <i class="bi bi-people"></i>
+                        Люди
+                        <span class="oh-search-section__count" id="ohSearchUsersCount"></span>
+                    </h3>
+                    <div class="oh-search-group" id="ohSearchUsersGroup"></div>
+                </section>
+            </div>
+        </div>
+
+        <a class="oh-search-footer" id="ohSearchFooter" href="/Search">
+            <span>Все результаты</span>
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
