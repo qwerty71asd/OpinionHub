@@ -263,10 +263,10 @@
                         {
                             @if (Model.Status == PollStatus.Draft)
                             {
-                                <form asp-action="Publish" method="post" class="mb-2">
-                                    <input type="hidden" name="id" value="@Model.Id" />
-                                    <button class="btn btn-sm btn-success w-100">Опубликовать черновик</button>
-                                </form>
+                                <a class="btn btn-sm btn-success w-100 mb-2"
+                                   asp-action="Edit" asp-controller="Polls" asp-route-id="@Model.Id">
+                                    <i class="bi bi-pencil me-1"></i>Продолжить редактирование
+                                </a>
                             }
 
                             <div class="d-flex gap-2 mb-2">

@@ -173,33 +173,129 @@ public class PollsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Publish(Guid id)
+    [HttpGet]
+    public async Task<IActionResult> Edit(Guid id)
     {
-        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Details), "Polls", new { id }));
+        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Edit), "Polls", new { id }));
         if (gate is not null) return gate;
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        await _pollService.PublishAsync(id, userId);
+        // EntityNotFound/Forbidden/InvalidOp перехватит DomainExceptionFilter (404/403/400).
+        var draft = await _pollService.GetDraftForEditAsync(id, userId);
+        return View(MapToEditViewModel(draft));
+    }
 
-        var connId = Request.Headers["X-SignalR-Connection-Id"].ToString();
-        await _pollService.PublishBroadcastAsync(id, string.IsNullOrEmpty(connId) ? null : connId);
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(EditPollViewModel model)
+    {
+        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Edit), "Polls", new { id = model.Id }));
+        if (gate is not null) return gate;
 
-        var pollUrl = Url.Action("Details", "Polls", new { id }, Request.Scheme);
-        var poll = await _pollService.GetPollDetailsAsync(id, userId);
-        if (poll != null && pollUrl is not null)
+        if (!ModelState.IsValid)
         {
-            var title = poll.Title;
-            await _taskQueue.QueueAsync((sp, ct) =>
-                sp.GetRequiredService<ITelegramNotificationService>().SendPollNotificationAsync(
-                    title,
-                    "Заходите проголосовать! Ваш голос очень важен.",
-                    pollUrl,
-                    null));
+            await RehydrateEditModelAsync(model);
+            while (model.Options.Count < 2) model.Options.Add(new EditPollOptionVm());
+            return View(model);
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var poll = await _pollService.UpdateDraftAsync(model.Id, model, userId, model.PublishNow);
+
+            if (model.PublishNow && poll.Status == PollStatus.Active)
+            {
+                // Та же логика, что в Create POST для PublishNow=true: SignalR-карточка + Telegram-постинг.
+                var connId = Request.Headers["X-SignalR-Connection-Id"].ToString();
+                await _pollService.PublishBroadcastAsync(poll.Id, string.IsNullOrEmpty(connId) ? null : connId);
+
+                var pollUrl = Url.Action("Details", "Polls", new { id = poll.Id }, Request.Scheme);
+                if (pollUrl is not null)
+                {
+                    var title = poll.Title;
+                    await _taskQueue.QueueAsync((sp, ct) =>
+                        sp.GetRequiredService<ITelegramNotificationService>().SendPollNotificationAsync(
+                            title,
+                            "Заходите проголосовать! Ваш голос очень важен.",
+                            pollUrl,
+                            null));
+                }
+            }
+
+            return RedirectToAction(nameof(Details), new { id = poll.Id });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            await RehydrateEditModelAsync(model);
+            return View(model);
+        }
+    }
+
+    private static EditPollViewModel MapToEditViewModel(Poll p)
+    {
+        return new EditPollViewModel
+        {
+            Id = p.Id,
+            Title = p.Title,
+            Description = p.Description,
+            PollType = p.PollType,
+            VisibilityType = p.VisibilityType,
+            AudienceType = p.AudienceType,
+            CanChangeVote = p.CanChangeVote,
+            IsAnonymousAuthor = p.IsAnonymousAuthor,
+            EndDateUtc = p.EndDateUtc,
+            ExistingCoverPath = p.CoverImagePath,
+            AllowedUserIds = p.AllowedUsers.Select(a => a.UserId).ToList(),
+            Options = p.Options.Select(o => new EditPollOptionVm
+            {
+                Id = o.Id,
+                Text = o.Text,
+                ExistingImagePath = o.ImagePath
+            }).ToList(),
+            ExistingAttachments = p.Attachments.Select(a => new ExistingAttachmentVm
+            {
+                Id = a.Id,
+                OriginalFileName = a.OriginalFileName,
+                FilePath = a.FilePath,
+                FileSize = a.FileSize
+            }).ToList()
+        };
+    }
+
+    /// <summary>
+    /// При невалидном POST форма должна снова показать превью обложки/опций/аттачментов —
+    /// эти поля в POST не приходят, перечитываем их из БД и проставляем в модель.
+    /// </summary>
+    private async Task RehydrateEditModelAsync(EditPollViewModel model)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return;
+        Poll draft;
+        try
+        {
+            draft = await _pollService.GetDraftForEditAsync(model.Id, userId);
+        }
+        catch
+        {
+            return;
+        }
+
+        model.ExistingCoverPath = draft.CoverImagePath;
+        var optionPaths = draft.Options.ToDictionary(o => o.Id, o => o.ImagePath);
+        foreach (var opt in model.Options)
+        {
+            if (opt.Id.HasValue && optionPaths.TryGetValue(opt.Id.Value, out var path))
+                opt.ExistingImagePath = path;
+        }
+        model.ExistingAttachments = draft.Attachments.Select(a => new ExistingAttachmentVm
+        {
+            Id = a.Id,
+            OriginalFileName = a.OriginalFileName,
+            FilePath = a.FilePath,
+            FileSize = a.FileSize
+        }).ToList();
     }
 
     [HttpPost]
@@ -257,28 +353,6 @@ public class PollsController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var bytes = await _pollService.ExportXlsxAsync(id, userId);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "results.xlsx");
-    }
-    [HttpGet]
-    public async Task<IActionResult> Profile()
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return Challenge();
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return NotFound();
-
-        var myPolls = await _pollService.GetUserPollsAsync(userId);
-        var votedPolls = await _pollService.GetVotedPollsAsync(userId);
-
-        var viewModel = new UserProfileViewModel
-        {
-            UserName = user.UserName ?? "Пользователь",
-            Email = user.Email ?? "",
-            MyPolls = myPolls,
-            VotedPolls = votedPolls
-        };
-
-        return View(viewModel);
     }
     [HttpGet]
     [AllowAnonymous]

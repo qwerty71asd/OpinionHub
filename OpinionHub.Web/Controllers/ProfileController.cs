@@ -43,8 +43,10 @@ public class ProfileController : Controller
         var viewerId = _userManager.GetUserId(User);
         var isOwn = viewerId is not null && viewerId == target.Id;
 
-        // Свои опросы — все (включая soft-удалённые: GetUserPollsAsync не фильтрует IsDeleted).
-        var polls = await _polls.GetUserPollsAsync(target.Id);
+        // Опубликованные опросы видят все (включая soft-удалённые с бейджем «Удалён»);
+        // черновики — только владелец, иначе на чужом профиле раскрывались бы Draft'ы.
+        var published = await _polls.GetUserPublishedPollsAsync(target.Id);
+        var drafts = isOwn ? await _polls.GetUserDraftsAsync(target.Id) : new List<Poll>();
 
         // Privacy: владелец видит всегда; чужие — только если владелец включил флаг.
         var canSeeVoted = isOwn || target.ShowVotedPolls;
@@ -76,7 +78,8 @@ public class ProfileController : Controller
             IsOwnProfile = isOwn,
             IsSubscribed = isSubscribed,
             IsViewerAuthenticated = viewerId is not null,
-            Polls = polls,
+            Polls = published,
+            Drafts = drafts,
             VotedPolls = voted,
             LikedPolls = liked,
             CanSeeVotedPolls = canSeeVoted,

@@ -84,8 +84,9 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
-                            <a class="dropdown-item" asp-area="" asp-controller="Polls" asp-action="Profile">
-                                <i class="bi bi-person me-2"></i>Мои опросы
+                            <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index"
+                               asp-route-userName="@User.Identity?.Name">
+                                <i class="bi bi-person me-2"></i>Профиль
                             </a>
                         </li>
                         <li>

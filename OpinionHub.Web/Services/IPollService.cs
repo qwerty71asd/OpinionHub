@@ -6,7 +6,6 @@ namespace OpinionHub.Web.Services;
 public interface IPollService
 {
     Task<Poll> CreateDraftAsync(CreatePollViewModel model, string authorId);
-    Task PublishAsync(Guid pollId, string authorId);
     /// <summary>
     /// Единая точка SignalR-рассылки «новый опрос в ленте». При указанном
     /// signalrConnectionId — шлёт всем кроме инициатора (избегаем дубля
@@ -30,7 +29,26 @@ public interface IPollService
     Task DeleteAsync(Guid pollId, string userId);
     /// <summary>Soft-delete опроса админом — не требует, чтобы admin был автором. Логируется в AuditLog.</summary>
     Task AdminSoftDeleteAsync(Guid pollId, string adminId);
-    Task<List<Poll>> GetUserPollsAsync(string userId);
+
+    /// <summary>Опубликованные опросы автора (Status != Draft). Soft-удалённые остаются — их рисует профиль с бейджем «Удалён».</summary>
+    Task<List<Poll>> GetUserPublishedPollsAsync(string userId);
+
+    /// <summary>Черновики автора (Status == Draft, !IsDeleted). Для вкладки «Черновики» в собственном профиле.</summary>
+    Task<List<Poll>> GetUserDraftsAsync(string userId);
+
+    /// <summary>
+    /// Подтягивает черновик со всеми навигациями (Options/Attachments/AllowedUsers) для построения EditPollViewModel.
+    /// Бросает EntityNotFoundException, ForbiddenAccessException (не автор), InvalidOperationException (не Draft).
+    /// </summary>
+    Task<Poll> GetDraftForEditAsync(Guid pollId, string authorId);
+
+    /// <summary>
+    /// Обновляет черновик и (опционально) публикует его. Заменяет старые Create+Publish-flow:
+    /// если publishNow == true — Status переводится в Active внутри той же транзакции, и метод
+    /// сам ставит Telegram-задачу в очередь (так же, как CreateDraftAsync для PublishNow=true).
+    /// </summary>
+    Task<Poll> UpdateDraftAsync(Guid pollId, EditPollViewModel model, string authorId, bool publishNow);
+
     /// <summary>
     /// Опросы, в которых пользователь голосовал. Для собственного профиля передавать
     /// <paramref name="includeAnonymous"/> = true; для публичного профиля чужого

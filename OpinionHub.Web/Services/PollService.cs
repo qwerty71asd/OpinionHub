@@ -140,25 +140,6 @@ public class PollService : IPollService
         return poll;
     }
 
-    public async Task PublishAsync(Guid pollId, string authorId)
-    {
-        // Сначала ищем без AuthorId-фильтра — нужно различать 404 и 403, чтобы клиент
-        // получил осмысленный статус через DomainExceptionFilter.
-        var poll = await _db.Polls.FirstOrDefaultAsync(p => p.Id == pollId);
-        if (poll is null) throw new EntityNotFoundException("Опрос не найден.");
-        if (poll.AuthorId != authorId) throw new ForbiddenAccessException("Публиковать опрос может только его автор.");
-        if (poll.Status != PollStatus.Draft) throw new InvalidOperationException("Публикуются только черновики.");
-        poll.Status = PollStatus.Active;
-        await _db.SaveChangesAsync();
-
-        if (_telegram is not null)
-        {
-            var pollIdLocal = poll.Id;
-            await _taskQueue.QueueAsync((sp, ct) =>
-                sp.GetRequiredService<ITelegramNotificationService>().NotifySubscribersOfNewPollAsync(pollIdLocal));
-        }
-    }
-
     public async Task VoteAsync(Guid pollId, string userId, IReadOnlyCollection<Guid> optionIds)
     {
         var poll = await _db.Polls
@@ -433,12 +414,225 @@ public class PollService : IPollService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<List<Poll>> GetUserPollsAsync(string userId)
+    public async Task<List<Poll>> GetUserPublishedPollsAsync(string userId)
     {
+        // Soft-удалённые оставляем — публичный профиль рисует их с бейджем «Удалён».
         return await _db.Polls
-            .Where(p => p.AuthorId == userId)
+            .Where(p => p.AuthorId == userId && p.Status != PollStatus.Draft)
             .OrderByDescending(p => p.CreatedAtUtc)
             .ToListAsync();
+    }
+
+    public async Task<List<Poll>> GetUserDraftsAsync(string userId)
+    {
+        return await _db.Polls
+            .Where(p => p.AuthorId == userId && p.Status == PollStatus.Draft && !p.IsDeleted)
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .ToListAsync();
+    }
+
+    public async Task<Poll> GetDraftForEditAsync(Guid pollId, string authorId)
+    {
+        var poll = await _db.Polls
+            .Include(p => p.Options)
+            .Include(p => p.Attachments)
+            .Include(p => p.AllowedUsers)
+            .FirstOrDefaultAsync(p => p.Id == pollId);
+
+        if (poll is null) throw new EntityNotFoundException("Опрос не найден.");
+        if (poll.AuthorId != authorId) throw new ForbiddenAccessException("Редактировать опрос может только его автор.");
+        if (poll.Status != PollStatus.Draft) throw new InvalidOperationException("Редактировать можно только черновики.");
+        return poll;
+    }
+
+    public async Task<Poll> UpdateDraftAsync(Guid pollId, EditPollViewModel model, string authorId, bool publishNow)
+    {
+        var poll = await _db.Polls
+            .Include(p => p.Options).ThenInclude(o => o.VoteSelections)
+            .Include(p => p.Attachments)
+            .Include(p => p.AllowedUsers)
+            .FirstOrDefaultAsync(p => p.Id == pollId);
+
+        if (poll is null) throw new EntityNotFoundException("Опрос не найден.");
+        if (poll.AuthorId != authorId) throw new ForbiddenAccessException("Редактировать опрос может только его автор.");
+        if (poll.Status != PollStatus.Draft) throw new InvalidOperationException("Редактировать можно только черновики.");
+
+        var title = model.Title?.Trim();
+        if (string.IsNullOrWhiteSpace(title))
+            throw new InvalidOperationException("Название опроса не может быть пустым.");
+
+        // EndDate валидируем только если она изменилась — старый просроченный черновик иначе нельзя
+        // было бы спасти. При неизменной дате (даже уже прошедшей) даём опубликовать «как есть».
+        DateTime? endUtc = null;
+        if (model.EndDateUtc.HasValue)
+        {
+            var raw = model.EndDateUtc.Value;
+            var asLocal = raw.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(raw, DateTimeKind.Local)
+                : raw.ToLocalTime();
+            endUtc = asLocal.ToUniversalTime();
+
+            var changed = !poll.EndDateUtc.HasValue
+                || Math.Abs((poll.EndDateUtc.Value - endUtc.Value).TotalSeconds) > 1;
+            if (changed && endUtc.Value <= DateTime.UtcNow)
+                throw new InvalidOperationException("Дата окончания должна быть в будущем.");
+        }
+
+        // Файлы удаляем ПОСЛЕ успешного SaveChangesAsync — иначе при падении транзакции
+        // получим лишние orphan-удаления на диске.
+        var filesToDelete = new List<string>();
+
+        // --- Обложка ---
+        if (model.RemoveCover && !string.IsNullOrEmpty(poll.CoverImagePath))
+        {
+            filesToDelete.Add(poll.CoverImagePath);
+            poll.CoverImagePath = null;
+        }
+        if (model.CoverImage != null)
+        {
+            if (!string.IsNullOrEmpty(poll.CoverImagePath))
+                filesToDelete.Add(poll.CoverImagePath);
+            poll.CoverImagePath = await _fileStorage.SaveFileAsync(model.CoverImage, "covers");
+        }
+
+        // --- Скалярные поля ---
+        poll.Title = title;
+        poll.Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
+        poll.PollType = model.PollType;
+        poll.VisibilityType = model.VisibilityType;
+        poll.AudienceType = model.AudienceType;
+        poll.CanChangeVote = model.CanChangeVote;
+        poll.IsAnonymousAuthor = model.IsAnonymousAuthor;
+        poll.EndDateUtc = endUtc;
+
+        // --- Опции (diff по Id) ---
+        var incomingOptions = (model.Options ?? new List<EditPollOptionVm>())
+            .Where(o => !string.IsNullOrWhiteSpace(o.Text))
+            .ToList();
+
+        var keepIds = incomingOptions.Where(o => o.Id.HasValue).Select(o => o.Id!.Value).ToHashSet();
+        var toRemove = poll.Options.Where(o => !keepIds.Contains(o.Id)).ToList();
+        foreach (var opt in toRemove)
+        {
+            if (opt.VoteSelections.Any())
+                throw new InvalidOperationException("Нельзя удалить вариант, по которому уже голосовали.");
+            if (!string.IsNullOrEmpty(opt.ImagePath))
+                filesToDelete.Add(opt.ImagePath);
+            poll.Options.Remove(opt);
+        }
+
+        foreach (var incoming in incomingOptions)
+        {
+            if (incoming.Id.HasValue)
+            {
+                var existing = poll.Options.FirstOrDefault(o => o.Id == incoming.Id.Value);
+                if (existing is null) continue;
+                existing.Text = incoming.Text.Trim();
+
+                if (incoming.RemoveImage && !string.IsNullOrEmpty(existing.ImagePath))
+                {
+                    filesToDelete.Add(existing.ImagePath);
+                    existing.ImagePath = null;
+                }
+                if (incoming.Image != null)
+                {
+                    if (!string.IsNullOrEmpty(existing.ImagePath))
+                        filesToDelete.Add(existing.ImagePath);
+                    existing.ImagePath = await _fileStorage.SaveFileAsync(incoming.Image, "options");
+                }
+            }
+            else
+            {
+                string? imagePath = null;
+                if (incoming.Image != null)
+                    imagePath = await _fileStorage.SaveFileAsync(incoming.Image, "options");
+                poll.Options.Add(new PollOption
+                {
+                    Text = incoming.Text.Trim(),
+                    ImagePath = imagePath
+                });
+            }
+        }
+
+        if (poll.Options.Count < 2)
+            throw new InvalidOperationException("Нужно минимум 2 варианта.");
+
+        // --- Аттачменты ---
+        if (model.RemoveAttachmentIds != null && model.RemoveAttachmentIds.Count > 0)
+        {
+            var removeIds = model.RemoveAttachmentIds.ToHashSet();
+            var attsToRemove = poll.Attachments.Where(a => removeIds.Contains(a.Id)).ToList();
+            foreach (var att in attsToRemove)
+            {
+                if (!string.IsNullOrEmpty(att.FilePath))
+                    filesToDelete.Add(att.FilePath);
+                poll.Attachments.Remove(att);
+            }
+        }
+        if (model.AttachedFiles != null && model.AttachedFiles.Count > 0)
+        {
+            foreach (var file in model.AttachedFiles)
+            {
+                var filePath = await _fileStorage.SaveFileAsync(file, "attachments");
+                poll.Attachments.Add(new PollAttachment
+                {
+                    FilePath = filePath,
+                    OriginalFileName = file.FileName,
+                    ContentType = file.ContentType,
+                    FileSize = file.Length
+                });
+            }
+        }
+
+        // --- AllowedUsers (pересобираем под текущий AudienceType) ---
+        poll.AllowedUsers.Clear();
+        if (model.AudienceType == AudienceType.SelectedUsers)
+        {
+            foreach (var uid in (model.AllowedUserIds ?? new List<string>()).Distinct())
+            {
+                poll.AllowedUsers.Add(new PollAllowedUser { UserId = uid });
+            }
+        }
+
+        // --- Публикация (если просили) ---
+        var wasDraft = poll.Status == PollStatus.Draft;
+        if (publishNow && wasDraft)
+        {
+            poll.Status = PollStatus.Active;
+            _db.AuditLogs.Add(new AuditLog
+            {
+                EventType = "POLL_PUBLISHED",
+                PollId = poll.Id,
+                UserId = authorId,
+                Details = poll.Title
+            });
+        }
+        else
+        {
+            _db.AuditLogs.Add(new AuditLog
+            {
+                EventType = "POLL_UPDATED",
+                PollId = poll.Id,
+                UserId = authorId,
+                Details = poll.Title
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        // После успешного SaveChanges сносим orphan-файлы (cover/option-images/attachments).
+        foreach (var path in filesToDelete)
+            _fileStorage.DeleteFile(path);
+
+        // Telegram-рассылка подписчикам — только если публикуем здесь.
+        if (publishNow && poll.Status == PollStatus.Active && _telegram is not null)
+        {
+            var pollIdLocal = poll.Id;
+            await _taskQueue.QueueAsync((sp, ct) =>
+                sp.GetRequiredService<ITelegramNotificationService>().NotifySubscribersOfNewPollAsync(pollIdLocal));
+        }
+
+        return poll;
     }
 
     public async Task<List<Poll>> GetVotedPollsAsync(string userId, bool includeAnonymous = true)

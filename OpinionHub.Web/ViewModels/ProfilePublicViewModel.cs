@@ -29,6 +29,9 @@ public class ProfilePublicViewModel
     public List<Poll> VotedPolls { get; set; } = new();
     public List<Poll> LikedPolls { get; set; } = new();
 
+    /// <summary>Черновики автора — заполняется только когда IsOwnProfile == true; иначе пустой.</summary>
+    public List<Poll> Drafts { get; set; } = new();
+
     /// <summary>true — содержимое вкладки «Участвовал(а)» доступно зрителю (свой профиль или владелец включил).</summary>
     public bool CanSeeVotedPolls { get; set; }
 
