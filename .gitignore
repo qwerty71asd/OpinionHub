@@ -2,6 +2,11 @@
 *.suo
 *.db
 *.log
+*.yml
+*.tar
+*.dockerignore
+Dockerfile
+
 artifacts/
 TestResults/
 [Cc]onfig.json
@@ -12,3 +17,4 @@ obj/
 .vs/
 OpinionHub.Web/wwwroot/uploads/
 /OpinionHub.Web/currenttask.md
+secrets/
