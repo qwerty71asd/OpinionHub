@@ -127,6 +127,75 @@ public class AdminController : Controller
     private Task<int> GetPendingAppealsCountAsync() => _db.Appeals.CountAsync(a => a.Status == AppealStatus.Pending);
 
     [HttpGet]
+    public async Task<IActionResult> Dashboard()
+    {
+        var now = DateTime.UtcNow;
+        var weekAgo = now.AddDays(-7);
+        var monthAgo = now.AddDays(-30).Date;
+        var nowOff = DateTimeOffset.UtcNow;
+
+        var vm = new AdminDashboardVm();
+
+        vm.TotalUsers = await _users.Users.AsNoTracking().CountAsync(u => !u.IsDeleted);
+        vm.ActiveUsersWeek = await _db.Votes.AsNoTracking()
+            .Where(v => v.CreatedAtUtc >= weekAgo && v.UserId != null)
+            .Select(v => v.UserId)
+            .Distinct()
+            .CountAsync();
+        vm.TotalPolls = await _db.Polls.AsNoTracking().CountAsync(p => !p.IsDeleted);
+        vm.NewPollsWeek = await _db.Polls.AsNoTracking().CountAsync(p => !p.IsDeleted && p.CreatedAtUtc >= weekAgo);
+        vm.TotalVotes = await _db.Votes.AsNoTracking().CountAsync();
+        vm.VotesWeek = await _db.Votes.AsNoTracking().CountAsync(v => v.CreatedAtUtc >= weekAgo);
+        vm.PendingReports = await GetPendingReportsCountAsync();
+        vm.PendingAppeals = await GetPendingAppealsCountAsync();
+
+        // График голосов за 30 дней: группируем по дате, добиваем нули для пустых дней.
+        var raw = await _db.Votes.AsNoTracking()
+            .Where(v => v.CreatedAtUtc >= monthAgo)
+            .GroupBy(v => v.CreatedAtUtc.Date)
+            .Select(g => new { Day = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var byDay = raw.ToDictionary(x => x.Day, x => x.Count);
+        for (int i = 0; i < 30; i++)
+        {
+            var day = monthAgo.AddDays(i);
+            vm.ChartLabels.Add(day.ToString("dd.MM"));
+            vm.ChartData.Add(byDay.TryGetValue(day, out var c) ? c : 0);
+        }
+
+        var statuses = await _db.Polls.AsNoTracking()
+            .Where(p => !p.IsDeleted)
+            .GroupBy(p => p.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+        foreach (var s in statuses) vm.StatusBreakdown[s.Status] = s.Count;
+
+        vm.TopPolls = await _db.Polls.AsNoTracking()
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.Votes.Count)
+            .Take(10)
+            .Select(p => new TopPollRow
+            {
+                Id = p.Id,
+                Title = p.Title,
+                VoteCount = p.Votes.Count,
+                AuthorName = p.IsAnonymousAuthor ? "Аноним" : (p.Author != null ? p.Author.UserName : null),
+                CreatedAtUtc = p.CreatedAtUtc
+            })
+            .ToListAsync();
+
+        // Счётчики sidebar — те же, что в Index().
+        var allUsersQuery = _users.Users.AsNoTracking();
+        vm.CountAll = await allUsersQuery.CountAsync();
+        vm.CountDeleted = await allUsersQuery.CountAsync(u => u.IsDeleted);
+        vm.CountBanned = await allUsersQuery.CountAsync(u => !u.IsDeleted && u.LockoutEnd != null && u.LockoutEnd > nowOff);
+        vm.CountActive = await allUsersQuery.CountAsync(u => !u.IsDeleted && (u.LockoutEnd == null || u.LockoutEnd <= nowOff));
+        vm.CountAdmin = (await _users.GetUsersInRoleAsync(Roles.Admin)).Count;
+
+        return View(vm);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Create()
     {
         var vm = new AdminUserCreateVm

@@ -68,6 +68,13 @@
 
             @if (User.Identity?.IsAuthenticated == true)
             {
+                <a asp-controller="Polls" asp-action="CreateWithAi"
+                   class="btn btn-outline-primary btn-sm d-none d-md-inline-flex align-items-center"
+                   title="Сгенерировать опрос с ИИ" aria-label="Сгенерировать опрос с ИИ">
+                    <i class="bi bi-stars"></i>
+                    <span class="ms-1">С ИИ</span>
+                </a>
+
                 <a asp-controller="Polls" asp-action="Create"
                    class="btn btn-primary btn-sm"
                    title="Создать опрос" aria-label="Создать опрос">

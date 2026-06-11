@@ -129,6 +129,7 @@ builder.Services.AddHttpClient<AiAnalyticsService>()
 var app = builder.Build();
 
 await DbInitializer.InitializeAsync(app.Services, app.Logger, app.Configuration, app.Environment);
+await DevDataSeeder.SeedAsync(app.Services, app.Logger, app.Configuration, app.Environment);
 
 if (!app.Environment.IsDevelopment())
 {

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -49,8 +50,73 @@ public class PollsController : Controller
     {
         var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(Create), "Polls"));
         if (gate is not null) return gate;
-        return View(new CreatePollViewModel());
 
+        var vm = new CreatePollViewModel();
+
+        // Префилл из AI-генерации (страница /Polls/CreateWithAi кладёт сюда JSON).
+        if (TempData["AiPrefill"] is string raw && !string.IsNullOrEmpty(raw))
+        {
+            try
+            {
+                var dto = JsonSerializer.Deserialize<GeneratedPollDto>(raw);
+                if (dto is not null)
+                {
+                    vm.Title = dto.Title;
+                    vm.Description = dto.Description;
+                    vm.Options = dto.Options
+                        .Select(t => new CreatePollOptionVm { Text = t })
+                        .ToList();
+                    while (vm.Options.Count < 2) vm.Options.Add(new CreatePollOptionVm());
+                }
+            }
+            catch
+            {
+                // Битый prefill — игнорируем, рендерим пустую форму.
+            }
+        }
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GeneratePollAi([FromBody] GeneratePollAiRequest req)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.Topic))
+            return Json(new { ok = false, error = "Укажите тему опроса." });
+
+        var dto = await _aiService.GeneratePollAsync(req.Topic, req.OptionCount);
+        if (dto is null)
+            return Json(new { ok = false, error = "Не удалось сгенерировать опрос. Попробуйте ещё раз или переформулируйте тему." });
+
+        return Json(new { ok = true, title = dto.Title, description = dto.Description, options = dto.Options });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CreateWithAi()
+    {
+        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(CreateWithAi), "Polls"));
+        if (gate is not null) return gate;
+        return View(new CreateWithAiInputVm());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateWithAi(CreateWithAiInputVm vm)
+    {
+        var gate = await RequireConfirmedEmailOrRedirectAsync(Url.Action(nameof(CreateWithAi), "Polls"));
+        if (gate is not null) return gate;
+
+        if (!ModelState.IsValid) return View(vm);
+
+        var dto = await _aiService.GeneratePollAsync(vm.Topic, vm.OptionCount);
+        if (dto is null)
+        {
+            ModelState.AddModelError(string.Empty, "Не удалось сгенерировать опрос. Попробуйте ещё раз или переформулируйте тему.");
+            return View(vm);
+        }
+
+        TempData["AiPrefill"] = JsonSerializer.Serialize(dto);
+        return RedirectToAction(nameof(Create));
     }
 
     [HttpPost]

@@ -21,6 +21,12 @@
     <div class="card border-0 shadow-sm oh-card">
         <div class="card-body p-4 p-md-4">
 
+            <div class="mb-3">
+                <button type="button" class="btn btn-outline-primary w-100 py-2" data-bs-toggle="modal" data-bs-target="#aiGenModal">
+                    <i class="bi bi-stars me-2"></i>Сгенерировать опрос с ИИ
+                </button>
+            </div>
+
             <form asp-action="Create" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
 
@@ -182,6 +188,43 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="aiGenModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-body text-body">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title fw-bold"><i class="bi bi-stars me-2"></i>Опрос за один промпт</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary small mb-3">
+                    Опиши тему — Gemini сгенерирует заголовок, описание и варианты. Потом отредактируешь как обычно.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Тема опроса</label>
+                    <textarea name="topic" class="form-control" rows="3" maxlength="200"
+                              placeholder="Например: какой язык программирования выбрать для первого проекта"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Число вариантов</label>
+                    <select name="optionCount" class="form-select">
+                        @for (int i = 2; i <= 6; i++) {
+                            <option value="@i" selected="@(i == 4)">@i</option>
+                        }
+                    </select>
+                </div>
+                <div class="alert alert-danger ai-gen-error d-none" role="alert"></div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" id="aiGenSubmit">
+                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-stars me-1"></i>Сгенерировать
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -621,6 +664,72 @@
                     hidden.value = submitter.value;
                 }
                 form.querySelectorAll('button[type="submit"]').forEach(b => b.disabled = true);
+            });
+        })();
+
+        // --- 7. AI-ГЕНЕРАЦИЯ ОПРОСА ИЗ МОДАЛКИ ---
+        (function () {
+            const modal = document.getElementById('aiGenModal');
+            if (!modal) return;
+            const btn = document.getElementById('aiGenSubmit');
+            const topicInput = modal.querySelector('textarea[name="topic"]');
+            const countInput = modal.querySelector('select[name="optionCount"]');
+            const errBox = modal.querySelector('.ai-gen-error');
+            const spinner = btn.querySelector('.spinner-border');
+            const optionsList = document.getElementById('optionsList');
+            const addBtn = document.getElementById('addOptionBtn');
+
+            btn.addEventListener('click', async () => {
+                errBox.classList.add('d-none');
+                errBox.textContent = '';
+
+                const topic = (topicInput.value || '').trim();
+                if (topic.length === 0) {
+                    errBox.textContent = 'Опиши тему опроса.';
+                    errBox.classList.remove('d-none');
+                    return;
+                }
+
+                spinner.classList.remove('d-none');
+                btn.disabled = true;
+
+                try {
+                    const resp = await fetch('@Url.Action("GeneratePollAi", "Polls")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            Topic: topic,
+                            OptionCount: parseInt(countInput.value, 10)
+                        })
+                    });
+                    const data = await resp.json();
+                    if (!data.ok) {
+                        errBox.textContent = data.error || 'Ошибка генерации.';
+                        errBox.classList.remove('d-none');
+                        return;
+                    }
+
+                    const titleEl = document.getElementById('Title');
+                    const descEl = document.getElementById('Description');
+                    if (titleEl) titleEl.value = data.title || '';
+                    if (descEl) descEl.value = data.description || '';
+
+                    // Очищаем список опций и добавляем новые через существующий addOption-механизм.
+                    optionsList.innerHTML = '';
+                    (data.options || []).forEach(text => {
+                        addBtn.click();
+                        const last = optionsList.querySelector('.input-group:last-child input[type="text"]');
+                        if (last) last.value = text;
+                    });
+
+                    bootstrap.Modal.getInstance(modal).hide();
+                } catch (e) {
+                    errBox.textContent = 'Сетевая ошибка. Попробуйте ещё раз.';
+                    errBox.classList.remove('d-none');
+                } finally {
+                    spinner.classList.add('d-none');
+                    btn.disabled = false;
+                }
             });
         })();
     </script>
