@@ -55,7 +55,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<OpinionHub.Web.Filters.DomainExceptionFilter>();
-});
+}).AddRazorRuntimeCompilation();
 builder.Services.AddSingleton<IValidationAttributeAdapterProvider, RuValidationAttributeAdapterProvider>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();

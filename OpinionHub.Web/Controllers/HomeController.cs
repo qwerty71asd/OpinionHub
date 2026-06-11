@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpinionHub.Web.Services;
 
@@ -21,5 +23,12 @@ public class HomeController : Controller
 
         var polls = await _pollService.GetFeedAsync(userId);
         return View(polls);
+    }
+
+    [AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult Error()
+    {
+        return View(HttpContext.Features.Get<IExceptionHandlerPathFeature>());
     }
 }

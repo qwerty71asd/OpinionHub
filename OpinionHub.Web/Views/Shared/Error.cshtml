@@ -1,0 +1,37 @@
+@model Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature
+@{
+    ViewData["Title"] = "Ошибка";
+    Layout = "_Layout";
+    var ex = Model?.Error;
+}
+
+<div class="container oh-page oh-page--narrow">
+    <h1 class="h3 oh-page-title text-center mb-3">
+        <i class="bi bi-exclamation-triangle-fill text-danger"></i> Что-то пошло не так
+    </h1>
+
+    @if (ex is null)
+    {
+        <p class="text-secondary text-center">
+            Сервер вернул ошибку, но подробностей нет.
+            Попробуйте обновить страницу или вернуться на <a asp-controller="Home" asp-action="Index">главную</a>.
+        </p>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            <div class="mb-2"><strong>Путь:</strong> @(Model?.Path ?? "—")</div>
+            <div class="mb-2"><strong>Тип:</strong> @ex.GetType().FullName</div>
+            <div class="mb-2"><strong>Сообщение:</strong> @ex.Message</div>
+        </div>
+        <details class="mb-3">
+            <summary class="small text-secondary">Stack trace</summary>
+            <pre class="small bg-light p-3 border rounded" style="white-space: pre-wrap;">@ex.ToString()</pre>
+        </details>
+        <p class="text-center">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-house"></i> На главную
+            </a>
+        </p>
+    }
+</div>
